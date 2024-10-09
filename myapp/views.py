@@ -16,30 +16,26 @@ from .models import (
     Docente, 
     PeriodoAcademico)
 from rest_framework.decorators import api_view
+from rest_framework import status
 from rest_framework.response import Response
 # Create your views here.
 def index(request):
   return render(request, 'client/index.html')
 
+# HERE IS ALL THE APIS
 
-
-
-
-
-
-# APIS
-
-
-# CREATE
+#region CREATE
 @api_view(['POST'])
 def create_Universidad(request):
   if request.method == 'POST':
-    ser = UniversidadSerializer(data=request.data)
-    if ser.is_valid():
-      ser.save()
-      return Response({"message": "Data saved successfully"})
+    serializer = UniversidadSerializer(data=request.data)   
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
     else:
-      return Response(ser.error)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 @api_view(['POST'])
 def create_Facultad(request):
   if request.method == 'POST':
@@ -98,10 +94,10 @@ def create_PeriodoAcademico(request):
       return Response({'message': 'Data saved Successfully'})
     else:
       return Response(ser.error)
+#endregion
 
 
-
-# RETRIEVE OR READ
+#region RETRIEVE OR READ
 @api_view(['GET'])
 def getAllUniversidad(request):
   lista = Universidad.objects.all()
@@ -143,6 +139,166 @@ def getAllPeriodoAcademico(request):
   lista = PeriodoAcademico.objects.all()
   ser = PeriodoAcademicoSerializer(lista, many=True)
   return Response(ser.data)
+#endregion
 
 
+#region UPDATE
 
+@api_view(['PUT', 'PATCH'])
+def update_universidad(request, pk):
+    try:
+        universidad = Universidad.objects.get(pk=pk)
+    except Universidad.DoesNotExist:
+        return JsonResponse({'error': 'Universidad not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method in ['PUT', 'PATCH']:
+        ser = UniversidadSerializer(universidad, data=request.data, partial=(request.method == 'PATCH'))
+        if ser.is_valid():
+            ser.save()
+            return JsonResponse(ser.data, status=status.HTTP_200_OK)
+        return JsonResponse(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['PUT', 'PATCH'])
+def update_facultad(request, pk):
+  try:
+    facultad = Facultad.objects.get(pk=pk)
+  except Facultad.DoesNotExist:
+    return JsonResponse({'error': 'Facultad not found'}, status=status.HTTP_404_NOT_FOUND)
+  if request.method in ['PUT', 'PATCH']:
+      ser = FacultadSerializer(facultad, data=request.data, partial=(request.method == 'PATCH'))
+      if ser.is_valid():
+          ser.save()
+          return JsonResponse(ser.data, status=status.HTTP_200_OK)
+      return JsonResponse(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['PUT', 'PATCH'])
+def update_escuela(request, pk):
+  try:
+    escuela = Escuela.objects.get(pk=pk)
+  except Escuela.DoesNotExist:
+    return JsonResponse({'error': 'Escuela not found'}, status=status.HTTP_404_NOT_FOUND)
+  if request.method in ['PUT', 'PATCH']:
+      ser = EscuelaSerializer(Escuela, data=request.data, partial=(request.method == 'PATCH'))
+      if ser.is_valid():
+          ser.save()
+          return JsonResponse(ser.data, status=status.HTTP_200_OK)
+      return JsonResponse(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['PUT', 'PATCH'])
+def update_tipoDocente(request, pk):
+  try:
+    tipoDocente = TipoDocente.objects.get(pk=pk)
+  except TipoDocente.DoesNotExist:
+    return JsonResponse({'error': 'Tipo docente not found'}, status=status.HTTP_404_NOT_FOUND)
+  if request.method in ['PUT', 'PATCH']:
+      ser = TipoDocenteSerializer(tipoDocente, data=request.data, partial=(request.method == 'PATCH'))
+      if ser.is_valid():
+          ser.save()
+          return JsonResponse(ser.data, status=status.HTTP_200_OK)
+      return JsonResponse(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['PUT', 'PATCH'])
+def update_categoriaDocente(request, pk):
+  try:
+    categoriaDocente = CategoriaDocente.objects.get(pk=pk)
+  except CategoriaDocente.DoesNotExist:
+    return JsonResponse({'error': 'Tipo docente not found'}, status=status.HTTP_404_NOT_FOUND)
+  if request.method in ['PUT', 'PATCH']:
+      ser = CategoriaDocenteSerializer(categoriaDocente, data=request.data, partial=(request.method == 'PATCH'))
+      if ser.is_valid():
+          ser.save()
+          return JsonResponse(ser.data, status=status.HTTP_200_OK)
+      return JsonResponse(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['PUT', 'PATCH'])
+def update_docente(request, pk):
+  try:
+    docente = Docente.objects.get(pk=pk)
+  except Docente.DoesNotExist:
+    return JsonResponse({'error': 'Tipo docente not found'}, status=status.HTTP_404_NOT_FOUND)
+  if request.method in ['PUT', 'PATCH']:
+      ser = DocenteSerializer(categoriaDocente, data=request.data, partial=(request.method == 'PATCH'))
+      if ser.is_valid():
+          ser.save()
+          return JsonResponse(ser.data, status=status.HTTP_200_OK)
+      return JsonResponse(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['PUT', 'PATCH'])
+def update_periodoAcademico(request, pk):
+  try:
+    periodo = PeriodoAcademico.objects.get(pk=pk)
+  except PeriodoAcademico.DoesNotExist:
+    return JsonResponse({'error': 'Tipo docente not found'}, status=status.HTTP_404_NOT_FOUND)
+  if request.method in ['PUT', 'PATCH']:
+      ser = PeriodoAcademicoSerializer(periodo, data=request.data, partial=(request.method == 'PATCH'))
+      if ser.is_valid():
+          ser.save()
+          return JsonResponse(ser.data, status=status.HTTP_200_OK)
+      return JsonResponse(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+#endregion
+
+#region DELETE
+@api_view(['DELETE'])
+def delete_universidad(request, pk):
+    try:
+        universidad = Universidad.objects.get(pk=pk)
+        universidad.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except Universidad.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['DELETE'])
+def delete_facultad(request, pk):
+    try:
+        facultad = Facultad.objects.get(pk=pk)
+        facultad.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except Facultad.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['DELETE'])
+def delete_escuela(request, pk):
+    try:
+        escuela = Escuela.objects.get(pk=pk)
+        Escuela.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except Escuela.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['DELETE'])
+def delete_tipoDocente(request, pk):
+    try:
+        tipoDocente = TipoDocente.objects.get(pk=pk)
+        tipoDocente.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except TipoDocente.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['DELETE'])
+def delete_categoriaDocente(request, pk):
+    try:
+        categoriaDocente = CategoriaDocente.objects.get(pk=pk)
+        categoriaDocente.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except CategoriaDocente.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['DELETE'])
+def delete_docente(request, pk):
+    try:
+        docente = Docente.objects.get(pk=pk)
+        docente.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except Docente.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['DELETE'])
+def delete_periodoAcademico(request, pk):
+    try:
+        periodo = PeriodoAcademico.objects.get(pk=pk)
+        periodo.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except PeriodoAcademico.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+#endregion

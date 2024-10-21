@@ -36,5 +36,7 @@ urlpatterns = [
     path('api/categoriadocente/delete/<int:pk>/', views.delete_categoriaDocente),
     path('api/docente/delete/<int:pk>/', views.delete_docente),
     path('api/periodoacademico/delete/<int:pk>/', views.delete_periodoAcademico),
-
+    # AUTH
+    path('api/login', views.login_view),
+    path('api/logout', views.logout_view)
 ]

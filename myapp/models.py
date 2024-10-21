@@ -58,7 +58,6 @@ class CategoriaDocente(models.Model):
       return self.nombre
   
 class Docente(models.Model):
-
     #CAMPOS
     Docentecodigo = models.IntegerField(primary_key=True)
     nombre = models.CharField(max_length=30)

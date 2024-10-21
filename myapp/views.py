@@ -18,6 +18,9 @@ from .models import (
 from rest_framework.decorators import api_view
 from rest_framework import status
 from rest_framework.response import Response
+from django.contrib.auth import authenticate
+from rest_framework_simplejwt.tokens import RefreshToken
+
 # Create your views here.
 def index(request):
   return render(request, 'client/index.html')
@@ -300,5 +303,32 @@ def delete_periodoAcademico(request, pk):
         return Response(status=status.HTTP_204_NO_CONTENT)
     except PeriodoAcademico.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
+
+#endregion
+
+#region Auth
+@api_view(['POST'])
+def login_view(request):
+    username = request.data.get('username')
+    password = request.data.get('password')
+    
+    user = authenticate(username=username, password=password)
+    if user is not None:
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        })
+    return Response({'error': 'Invalid credentials'}, status=400)
+
+@api_view(['POST'])
+def logout_view(request):
+    try:
+        refresh_token = request.data["refresh_token"]
+        token = RefreshToken(refresh_token)
+        token.blacklist()
+        return Response({"message": "Logout successful"}, status=200)
+    except Exception as e:
+        return Response({"error": str(e)}, status=400)
 
 #endregion

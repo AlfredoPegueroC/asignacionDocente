@@ -17,8 +17,8 @@ class FacultadSerializer(serializers.ModelSerializer):
 
 # Escuela Serializer
 class EscuelaSerializer(serializers.ModelSerializer):
-    UniversidadCodigo = UniversidadSerializer()
-    facultadCodigo = FacultadSerializer()
+    UniversidadCodigo = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
+    facultadCodigo = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
 
     class Meta:
         model = Escuela
@@ -26,7 +26,7 @@ class EscuelaSerializer(serializers.ModelSerializer):
 
 # TipoDocente Serializer
 class TipoDocenteSerializer(serializers.ModelSerializer):
-    UniversidadCodigo = UniversidadSerializer()
+    UniversidadCodigo = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
 
     class Meta:
         model = TipoDocente
@@ -34,7 +34,7 @@ class TipoDocenteSerializer(serializers.ModelSerializer):
 
 # CategoriaDocente Serializer
 class CategoriaDocenteSerializer(serializers.ModelSerializer):
-    UniversidadCodigo = UniversidadSerializer()
+    UniversidadCodigo = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
 
     class Meta:
         model = CategoriaDocente
@@ -42,9 +42,9 @@ class CategoriaDocenteSerializer(serializers.ModelSerializer):
 
 # Docente Serializer
 class DocenteSerializer(serializers.ModelSerializer):
-    UniversidadCodigo = UniversidadSerializer()
-    facultadCodigo = FacultadSerializer()
-    escuelaCodigo = EscuelaSerializer()
+    UniversidadCodigo = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
+    facultadCodigo = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
+    escuelaCodigo = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
     tipoDocenteCodigo = TipoDocenteSerializer()
     categoriaCodigo = CategoriaDocenteSerializer()
 
@@ -58,7 +58,7 @@ class DocenteSerializer(serializers.ModelSerializer):
 
 # PeriodoAcademico Serializer
 class PeriodoAcademicoSerializer(serializers.ModelSerializer):
-    UniversidadCodigo = UniversidadSerializer()
+    UniversidadCodigo = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
 
     class Meta:
         model = PeriodoAcademico

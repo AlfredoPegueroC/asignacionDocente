@@ -52,51 +52,52 @@ def create_Facultad(request):
 @api_view(['POST'])
 def create_Escuela(request):
   if request.method == 'POST':
-    ser = EscuelaSerializer(data=request.data)
-    if ser.is_valid():
-      ser.save()
-      return Response({"message": "Data saved successfully"})
+    serializer = EscuelaSerializer(data=request.data)
+    if serializer.is_valid():
+      serializer.save()
+      return Response(serializer.data, status=status.HTTP_201_CREATED)
     else:
-      return Response(ser.error)
+      return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 @api_view(['POST'])
 def create_TipoDocente(request):
   if request.method == 'POST':
-    ser = TipoDocenteSerializer(data=request.data)
-    if ser.is_valid():
-      ser.save()
-      return Response({"message": "Data saved Successfully"})
+    serializer= TipoDocenteSerializer(data=request.data)
+    if serializer.is_valid():
+      serializer.save()
+      return Response(serializer.data, status=status.HTTP_201_CREATED)
     else:
-      return Response(ser.error)
+      return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
 def create_CategoriaDocente(request):
   if request.methond == 'POST':
-    ser = CategoriaDocenteSerializer(data=request.data)
-    if ser.is_valid():
-      ser.save()
-      return Response({'message': 'Data saved Successfully'})
+    serializer = CategoriaDocenteSerializer(data=request.data)
+    if serializer.is_valid():
+      serializer.save()
+      return Response(serializer.data, status=status.HTTP_201_CREATED)
     else:
-      return Response(ser.error)
+      return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
 def create_Docente(request):
   if request.methond == 'POST':
-    ser = DocenteSerializer(data=request.data)
-    if ser.is_valid():
-      ser.save()
-      return Response({'message': 'Data saved Successfully'})
+    serializer = DocenteSerializer(data=request.data)
+    if serializer.is_valid():
+      serializer.save()
+      return Response(serializer.data, status=status.HTTP_201_CREATED)
     else:
-      return Response(ser.error)
+      return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
 def create_PeriodoAcademico(request):
   if request.methond == 'POST':
     ser = PeriodoAcademicoSerializer(data=request.data)
-    if ser.is_valid():
-      ser.save()
-      return Response({'message': 'Data saved Successfully'})
+    if serializer.is_valid():
+      serializer.save()
+      return Response(serializer.data, status=status.HTTP_201_CREATED)
     else:
-      return Response(ser.error)
+      return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 #endregion
 
 

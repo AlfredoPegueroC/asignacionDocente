@@ -9,7 +9,7 @@ class UniversidadSerializer(serializers.ModelSerializer):
 
 # Facultad Serializer
 class FacultadSerializer(serializers.ModelSerializer):
-    UniversidadCodigo = UniversidadSerializer()
+    UniversidadCodigo = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
 
     class Meta:
         model = Facultad

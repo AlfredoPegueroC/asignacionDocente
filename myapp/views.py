@@ -42,12 +42,12 @@ def create_Universidad(request):
 @api_view(['POST'])
 def create_Facultad(request):
   if request.method == 'POST':
-    ser = FacultadSerializer(data=request.data)
-    if ser.is_valid():
-      ser.save()
-      return Response({"message": "Data saved Successfully"})
+    serializer = FacultadSerializer(data=request.data)
+    if serializer.is_valid():
+      serializer.save()
+      return Response(serializer.data, status=status.HTTP_201_CREATED)
     else:
-      return Response(ser.error)
+      return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
 def create_Escuela(request):

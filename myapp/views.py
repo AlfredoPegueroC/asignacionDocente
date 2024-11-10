@@ -19,7 +19,8 @@ from rest_framework.decorators import api_view
 from rest_framework import status
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import RefreshToken,TokenError
+
 
 # Create your views here.
 def index(request):
@@ -310,26 +311,43 @@ def delete_periodoAcademico(request, pk):
 #region Auth
 @api_view(['POST'])
 def login_view(request):
+    # Retrieve username and password from request data
     username = request.data.get('username')
     password = request.data.get('password')
-    
+
+    if not username or not password:
+        return Response({'error': 'Username and password are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Authenticate the user
     user = authenticate(username=username, password=password)
     if user is not None:
+        # Generate tokens
         refresh = RefreshToken.for_user(user)
         return Response({
             'refresh': str(refresh),
             'access': str(refresh.access_token),
-        })
-    return Response({'error': 'Invalid credentials'}, status=400)
+        }, status=status.HTTP_200_OK)
+    
+    return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
 
 @api_view(['POST'])
 def logout_view(request):
     try:
-        refresh_token = request.data["refresh_token"]
+        # Retrieve the refresh token from the request data
+        refresh_token = request.data.get("refresh_token")
+        if not refresh_token:
+            return Response({"error": "Refresh token is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Blacklist the refresh token
         token = RefreshToken(refresh_token)
         token.blacklist()
-        return Response({"message": "Logout successful"}, status=200)
+        
+        return Response({"message": "Logout successful"}, status=status.HTTP_200_OK)
+    
+    except TokenError as e:  # Handles case if the token is invalid or already blacklisted
+        return Response({"error": "Invalid or expired token"}, status=status.HTTP_400_BAD_REQUEST)
+    
     except Exception as e:
-        return Response({"error": str(e)}, status=400)
-
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 #endregion

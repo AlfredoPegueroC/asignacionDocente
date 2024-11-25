@@ -18,7 +18,7 @@ class FacultadSerializer(serializers.ModelSerializer):
 # Escuela Serializer
 class EscuelaSerializer(serializers.ModelSerializer):
     UniversidadCodigo = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
-    facultadCodigo = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
+    facultadCodigo = serializers.PrimaryKeyRelatedField(queryset=Facultad.objects.all()) 
 
     class Meta:
         model = Escuela

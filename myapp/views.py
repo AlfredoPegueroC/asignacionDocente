@@ -72,7 +72,7 @@ def create_TipoDocente(request):
 
 @api_view(['POST'])
 def create_CategoriaDocente(request):
-  if request.methond == 'POST':
+  if request.method == 'POST':
     serializer = CategoriaDocenteSerializer(data=request.data)
     if serializer.is_valid():
       serializer.save()
@@ -82,7 +82,7 @@ def create_CategoriaDocente(request):
 
 @api_view(['POST'])
 def create_Docente(request):
-  if request.methond == 'POST':
+  if request.method == 'POST':
     serializer = DocenteSerializer(data=request.data)
     if serializer.is_valid():
       serializer.save()
@@ -92,7 +92,7 @@ def create_Docente(request):
 
 @api_view(['POST'])
 def create_PeriodoAcademico(request):
-  if request.methond == 'POST':
+  if request.method == 'POST':
     ser = PeriodoAcademicoSerializer(data=request.data)
     if serializer.is_valid():
       serializer.save()
@@ -123,7 +123,7 @@ def getAllEscuela(request):
 
 @api_view(['GET'])
 def getAllTipoDocente(request):
-  lista = TipoDocente.objets.all()
+  lista = TipoDocente.objects.all()
   ser = TipoDocenteSerializer(lista, many=True)
   return Response(ser.data)
 

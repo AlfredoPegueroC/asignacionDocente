@@ -43,15 +43,15 @@ class CategoriaDocenteSerializer(serializers.ModelSerializer):
 # Docente Serializer
 class DocenteSerializer(serializers.ModelSerializer):
     UniversidadCodigo = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
-    facultadCodigo = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
-    escuelaCodigo = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
-    tipoDocenteCodigo = TipoDocenteSerializer()
-    categoriaCodigo = CategoriaDocenteSerializer()
+    facultadCodigo = serializers.PrimaryKeyRelatedField(queryset=Facultad.objects.all())
+    escuelaCodigo = serializers.PrimaryKeyRelatedField(queryset=Escuela.objects.all())
+    tipoDocenteCodigo = serializers.PrimaryKeyRelatedField(queryset=TipoDocente.objects.all())
+    categoriaCodigo = serializers.PrimaryKeyRelatedField(queryset=CategoriaDocente.objects.all())
 
     class Meta:
         model = Docente
         fields = [
-            'DocenteCodigo', 'nombre', 'apellidos', 'sexo', 'estado_civil', 'fecha_nacimiento', 'telefono', 
+            'Docentecodigo', 'nombre', 'apellidos', 'sexo', 'estado_civil', 'fecha_nacimiento', 'telefono', 
             'direccion', 'estado', 'UniversidadCodigo', 'facultadCodigo', 'escuelaCodigo', 'tipoDocenteCodigo', 
             'categoriaCodigo'
         ]

@@ -135,7 +135,7 @@ def getAllCategoriaDocente(request):
 
 @api_view(['GET'])
 def getAllDocente(request):
-  lista = Docente.objetcts.all()
+  lista = Docente.objects.all()
   ser = DocenteSerializer(lista, many=True)
   return Response(ser.data)
 

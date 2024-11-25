@@ -107,7 +107,7 @@ def create_PeriodoAcademico(request):
 def getAllUniversidad(request):
   lista = Universidad.objects.all()
   ser = UniversidadSerializer(lista, many=True)
-  return Response(ser.data)
+  return Response(ser.data, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 def getAllFacultad(request):

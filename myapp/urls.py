@@ -38,5 +38,11 @@ urlpatterns = [
     path('api/periodoacademico/delete/<int:pk>/', views.delete_periodoAcademico),
     # AUTH
     path('api/login', views.login_view),
-    path('api/logout', views.logout_view)
+    path('api/logout', views.logout_view),
+
+    # Exports or Reports
+    path('export/universidad',views.UniversidadExport),
+    path('export/facultad', views.FacultadExport),
+    path('export/escuela', views.EscuelaExport),
+    path('export/docente', views.DocenteExport)
 ]

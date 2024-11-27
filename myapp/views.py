@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, HttpResponse
 from .serializer import (
   UniversidadSerializer, 
   FacultadSerializer, 
@@ -15,137 +15,87 @@ from .models import (
     CategoriaDocente, 
     Docente, 
     PeriodoAcademico)
+from .handles import createHandle, getAllHandle
 from rest_framework.decorators import api_view
 from rest_framework import status
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken,TokenError
+import pandas as panda
+
+
 
 
 # Create your views here.
 def index(request):
   return render(request, 'client/index.html')
 
-# HERE IS ALL THE APIS
+# HERE IS ALL THE ENDPOINTS OF THE API
 
 #region CREATE
+
+
+
 @api_view(['POST'])
 def create_Universidad(request):
-  if request.method == 'POST':
-    serializer = UniversidadSerializer(data=request.data)   
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    else:
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+  return  createHandle(request, UniversidadSerializer)
 
 @api_view(['POST'])
 def create_Facultad(request):
-  if request.method == 'POST':
-    serializer = FacultadSerializer(data=request.data)
-    if serializer.is_valid():
-      serializer.save()
-      return Response(serializer.data, status=status.HTTP_201_CREATED)
-    else:
-      return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+  return createHandle(request, FacultadSerializer)
 
 @api_view(['POST'])
 def create_Escuela(request):
-  if request.method == 'POST':
-    serializer = EscuelaSerializer(data=request.data)
-    if serializer.is_valid():
-      serializer.save()
-      return Response(serializer.data, status=status.HTTP_201_CREATED)
-    else:
-      return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+  return createHandle(request ,EscuelaSerializer)
 
 @api_view(['POST'])
 def create_TipoDocente(request):
-  if request.method == 'POST':
-    serializer= TipoDocenteSerializer(data=request.data)
-    if serializer.is_valid():
-      serializer.save()
-      return Response(serializer.data, status=status.HTTP_201_CREATED)
-    else:
-      return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+  return createHandle(request, TipoDocenteSerializer)
+
 
 @api_view(['POST'])
 def create_CategoriaDocente(request):
-  if request.method == 'POST':
-    serializer = CategoriaDocenteSerializer(data=request.data)
-    if serializer.is_valid():
-      serializer.save()
-      return Response(serializer.data, status=status.HTTP_201_CREATED)
-    else:
-      return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+  return createHandle(request, CategoriaDocenteSerializer)
 
 @api_view(['POST'])
 def create_Docente(request):
-  if request.method == 'POST':
-    serializer = DocenteSerializer(data=request.data)
-    if serializer.is_valid():
-      serializer.save()
-      return Response(serializer.data, status=status.HTTP_201_CREATED)
-    else:
-      return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+  return createHandle(request, DocenteSerializer)
 
 @api_view(['POST'])
 def create_PeriodoAcademico(request):
-  if request.method == 'POST':
-    ser = PeriodoAcademicoSerializer(data=request.data)
-    if serializer.is_valid():
-      serializer.save()
-      return Response(serializer.data, status=status.HTTP_201_CREATED)
-    else:
-      return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+  return createHandle(request, PeriodoAcademicoSerializer)
 #endregion
-
 
 #region RETRIEVE OR READ
 @api_view(['GET'])
 def getAllUniversidad(request):
-  lista = Universidad.objects.all()
-  ser = UniversidadSerializer(lista, many=True)
-  return Response(ser.data, status=status.HTTP_200_OK)
+  return getAllHandle(request, Universidad, UniversidadSerializer)
 
 @api_view(['GET'])
 def getAllFacultad(request):
-  lista = Facultad.objects.all()
-  ser = FacultadSerializer(lista, many=True)
-  return Response(ser.data)
+  return getAllHandle(request, Facultad, FacultadSerializer)
 
 @api_view(['GET'])
 def getAllEscuela(request):
-  lista = Escuela.objects.all()
-  ser = EscuelaSerializer(lista, many=True)
-  return Response(ser.data)
+  return getAllHandle(request, Escuela, EscuelaSerializer)
 
 @api_view(['GET'])
 def getAllTipoDocente(request):
-  lista = TipoDocente.objects.all()
-  ser = TipoDocenteSerializer(lista, many=True)
-  return Response(ser.data)
+  return getAllHandle(request, TipoDocente, TipoDocenteSerializer)
 
 @api_view(['GET'])
 def getAllCategoriaDocente(request):
-  lista = CategoriaDocente.objects.all()
-  ser = CategoriaDocenteSerializer(lista, many=True)
-  return Response(ser.data)
+  return getAllHandle(request, CategoriaDocente, CategoriaDocenteSerializer)
 
 @api_view(['GET'])
 def getAllDocente(request):
-  lista = Docente.objects.all()
-  ser = DocenteSerializer(lista, many=True)
-  return Response(ser.data)
+  return getAllHandle(request, Docente, DocenteSerializer)
 
 @api_view(['GET'])
 def getAllPeriodoAcademico(request):
-  lista = PeriodoAcademico.objects.all()
-  ser = PeriodoAcademicoSerializer(lista, many=True)
-  return Response(ser.data)
-#endregion
+  return getAllHandle(request, PeriodoAcademico, PeriodoAcademicoSerializer)
 
+#endregion
 
 #region UPDATE
 
@@ -350,4 +300,94 @@ def logout_view(request):
     
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+#endregion
+
+#region export
+def UniversidadExport(request):
+  queryset = Universidad.objects.all()
+  data = []
+
+  for universidad in queryset:
+    data.append({
+      'nombre': universidad.nombre,
+      'estado': universidad.estado
+    })
+
+  response = HttpResponse(content_type='application/vnd.ms-excel')
+  response['Content-Disposition'] = 'attachment; filename="universidad_data.xlsx"'
+
+  # pandas is a data analysis library for python
+  with panda.ExcelWriter(response, engine='openpyxl') as writer:
+        panda.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
+
+  return response
+
+def FacultadExport(request):
+  queryset = Facultad.objects.all()
+  data = []
+
+  for facultad in queryset:
+    data.append({
+      'Nombre': facultad.nombre,
+      'Estado': facultad.estado,
+      'Universidad': facultad.UniversidadCodigo.nombre
+
+    })
+
+  response = HttpResponse(content_type='application/vnd.ms-excel')
+  response['Content-Disposition'] = 'attachment; filename="facultad_data.xlsx"'
+
+  with panda.ExcelWriter(response, engine='openpyxl') as writer:
+    panda.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
+
+  return response
+
+def EscuelaExport(request):
+  queryset = Escuela.objects.all()
+  data = []
+
+  for escuela in queryset:
+    data.append({
+      'Nombre': escuela.nombre,
+      'Estado': escuela.estado,
+      'Universidad': escuela.UniversidadCodigo.nombre,
+      'Facultad': escuela.facultadCodigo.nombre
+    })
+
+  response = HttpResponse(content_type='application/vnd.ms-excel')
+  response['Content-Disposition'] = 'attachment; filename="escuela_data.xlsx"'
+
+  with panda.ExcelWriter(response, engine='openpyxl') as writer:
+    panda.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
+
+  return response
+
+def DocenteExport(request):
+  queryset = Docente.objects.all()
+  data = []
+
+  for docente in queryset:
+    data.append({
+      'Nombre': docente.nombre,
+      'Apellidos': docente.apellidos,
+      'Sexo': docente.sexo,
+      'Estado Civil': docente.estado_civil,
+      'Fecha de nacimiento': docente.fecha_nacimiento,
+      'Telefono': docente.telefono,
+      'Direccion': docente.direccion,
+      'Estado': docente.estado,
+      'Universidad': docente.UniversidadCodigo.nombre,
+      'Facultad': docente.facultadCodigo.nombre,
+      'Escuela': docente.escuelaCodigo.nombre,
+      'Tipo de docente': docente.tipoDocenteCodigo.nombre,
+      'categoria docente': docente.categoriaCodigo.nombre,
+    })
+
+  response = HttpResponse(content_type='application/vnd.ms-excel')
+  response['Content-Disposition'] = 'attachment; filename="Docente_data.xlsx"'
+
+  with panda.ExcelWriter(response, engine='openpyxl') as writer:
+    panda.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
+
+  return response
 #endregion

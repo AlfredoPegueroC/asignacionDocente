@@ -196,8 +196,9 @@ def update_periodoAcademico(request, pk):
 @api_view(['DELETE'])
 def delete_universidad(request, pk):
     try:
+        # Use UniversidadCodigo to fetch the university by its custom field
         universidad = Universidad.objects.get(pk=pk)
-        universidad.delete()
+        universidad.delete()  # Delete the specific university
         return Response(status=status.HTTP_204_NO_CONTENT)
     except Universidad.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)

@@ -26,3 +26,11 @@ def updateHandle(request, modelData, serializers, pk):
             ser.save()
             return JsonResponse(ser.data, status=status.HTTP_200_OK)
         return JsonResponse(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
+def deleteHandler(request, pk, modelData):
+    try:
+        deleteItem= modelData.objects.get(pk=pk)
+        deleteItem.delete()  #
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except modelData.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)

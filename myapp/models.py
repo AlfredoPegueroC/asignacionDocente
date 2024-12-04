@@ -36,7 +36,7 @@ class Universidad(models.Model):
   
 
 class Facultad(models.Model):
-  facultadCodigo = models.IntegerField(primary_key=True)
+  facultadCodigo = models.AutoField(primary_key=True, editable=False)
   nombre = models.CharField(max_length=100, null=False)
   estado = models.CharField(max_length=15, choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')])
   UniversidadCodigo = models.ForeignKey(Universidad, on_delete=models.CASCADE)
@@ -45,7 +45,7 @@ class Facultad(models.Model):
       return self.nombre
 
 class Escuela(models.Model):
-  escuelaCodigo = models.IntegerField(primary_key=True)
+  escuelaCodigo = models.AutoField(primary_key=True, editable=False)
   nombre = models.CharField(max_length=100, null=False)
   estado = models.CharField(max_length=15, choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')])
 
@@ -58,7 +58,7 @@ class Escuela(models.Model):
 
 class TipoDocente(models.Model):
   #CAMPOS
-  tipoDocenteCodigo = models.IntegerField(primary_key=True)
+  tipoDocenteCodigo = models.AutoField(primary_key=True, editable=False)
   nombre = models.CharField(max_length=100, null=False)
   estado = models.CharField(max_length=15, choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')])
 
@@ -71,7 +71,7 @@ class TipoDocente(models.Model):
 
 class CategoriaDocente(models.Model):
   #CAMPOS
-  categoriaCodigo = models.IntegerField(primary_key=True)
+  categoriaCodigo = models.AutoField(primary_key=True, editable=False)
   nombre = models.CharField(max_length=100, null=False)
   estado = models.CharField(max_length=15, choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')])
 
@@ -84,7 +84,7 @@ class CategoriaDocente(models.Model):
   
 class Docente(models.Model):
     #CAMPOS
-    Docentecodigo = models.IntegerField(primary_key=True)
+    Docentecodigo = models.AutoField(primary_key=True, editable=False)
     nombre = models.CharField(max_length=30)
     apellidos = models.CharField(max_length=30)
     sexo = models.CharField(max_length=1, choices=[('F', 'Femenino'), ('M', 'Masculino')])
@@ -106,7 +106,7 @@ class Docente(models.Model):
         return f"{self.nombre} {self.apellidos}"
 
 class PeriodoAcademico(models.Model):
-  periodoAcademicoCodigo = models.IntegerField(primary_key=True)
+  periodoAcademicoCodigo = models.AutoField(primary_key=True, editable=False)
   nombre = models.CharField(max_length=50, null=True)
   anio = models.SmallIntegerField()
   fechaIni = models.DateField(auto_now=False,auto_now_add=False)

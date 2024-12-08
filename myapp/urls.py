@@ -44,5 +44,7 @@ urlpatterns = [
     path('export/universidad',views.UniversidadExport),
     path('export/facultad', views.FacultadExport),
     path('export/escuela', views.EscuelaExport),
-    path('export/docente', views.DocenteExport)
+    path('export/docente', views.DocenteExport),
+    path('import/asignacion', views.ImportAsignacion.as_view())
+   
 ]

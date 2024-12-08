@@ -14,9 +14,12 @@ from .models import (
     TipoDocente,
     CategoriaDocente, 
     Docente, 
-    PeriodoAcademico)
+    PeriodoAcademico,
+    asignacionDocente)
 from .handles import createHandle, getAllHandle
 from rest_framework.decorators import api_view
+from rest_framework.views import APIView
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
@@ -391,4 +394,80 @@ def DocenteExport(request):
     panda.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
 
   return response
+
+class ImportAsignacion(APIView):
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request, *args, **kwargs):
+        excel_file = request.FILES.get('excel_file')
+
+        if not excel_file:
+            return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Read Excel file
+            df = pd.read_excel(excel_file)
+
+            # Required columns
+            required_columns = [
+                'nrc', 'clave', 'asignatura', 'codigo', 'seccion', 'modalidad',
+                'campus', 'tipo', 'cupo', 'inscripto', 'horario', 'dias',
+                'Aula', 'creditos', 'facultadCodigo', 'escuelaCodigo', 'DocenteCodigo'
+            ]
+
+            # Validate columns
+            if not all(col in df.columns for col in required_columns):
+                missing_columns = [col for col in required_columns if col not in df.columns]
+                return Response(
+                    {"error": f"Missing required columns: {', '.join(missing_columns)}"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Process rows
+            records_created = 0
+            for _, row in df.iterrows():
+                facultad = Facultad.objects.get(pk=row['facultadCodigo'])
+                escuela = Escuela.objects.get(pk=row['escuelaCodigo'])
+                docente = Docente.objects.get(pk=row['DocenteCodigo'])
+
+                obj, created = asignacionDocente.objects.get_or_create(
+                    nrc=row['nrc'],
+                    clave=row['clave'],
+                    asignatura=row['asignatura'],
+                    codigo=row['codigo'],
+                    seccion=row['seccion'],
+                    modalidad=row['modalidad'],
+                    campus=row['campus'],
+                    tipo=row['tipo'],
+                    cupo=row['cupo'],
+                    inscripto=row['inscripto'],
+                    horario=row['horario'],
+                    dias=row['dias'],
+                    Aula=row['Aula'],
+                    creditos=row['creditos'],
+                    facultadCodigo=facultad,
+                    escuelaCodigo=escuela,
+                    DocenteCodigo=docente
+                )
+                if created:
+                    records_created += 1
+
+            return Response(
+                {"message": f"Successfully imported {records_created} records."},
+                status=status.HTTP_201_CREATED
+            )
+
+        except Facultad.DoesNotExist:
+            return Response({"error": "Invalid Facultad ID provided"}, status=status.HTTP_400_BAD_REQUEST)
+        except Escuela.DoesNotExist:
+            return Response({"error": "Invalid Escuela ID provided"}, status=status.HTTP_400_BAD_REQUEST)
+        except Docente.DoesNotExist:
+            return Response({"error": "Invalid Docente ID provided"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response(
+                {"error": f"An error occurred: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
 #endregion

@@ -19,6 +19,7 @@ urlpatterns = [
     path('api/categoriaDocente', views.getAllCategoriaDocente),
     path('api/docente', views.getAllDocente),
     path('api/periodoacademico', views.getAllPeriodoAcademico),
+    path('api/asignacion', views.getAllAsignacion),
     # URLS UPDATE
     path('api/universidad/edit/<int:pk>/', views.update_universidad),
     path('api/universidad/edit/<int:pk>/', views.update_universidad),
@@ -44,5 +45,8 @@ urlpatterns = [
     path('export/universidad',views.UniversidadExport),
     path('export/facultad', views.FacultadExport),
     path('export/escuela', views.EscuelaExport),
-    path('export/docente', views.DocenteExport)
+    path('export/docente', views.DocenteExport),
+    path('export/asignacionDocenteExport', views.asignacionDocenteExport),
+    # import
+    path('import/asignacion', views.ImportAsignacion.as_view()),
 ]

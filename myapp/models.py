@@ -89,7 +89,7 @@ class Docente(models.Model):
     apellidos = models.CharField(max_length=30)
     sexo = models.CharField(max_length=1, choices=[('F', 'Femenino'), ('M', 'Masculino')])
     estado_civil = models.CharField(max_length=1, choices=[('S', 'Soltero'), ('C', 'Casado'), ('U', 'Unión Libre'), ('V', 'Viudo')])
-    fecha_nacimiento = models.DateField()
+    fecha_nacimiento = models.DateField(null=True, blank=True)
     telefono = models.CharField(max_length=15)
     direccion = models.CharField(max_length=250)
     estado = models.CharField(max_length=10, choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo'), ('Jubilado', 'Jubilado'), ('Sabático', 'Sabático'), ('Licencia', 'Licencia')])

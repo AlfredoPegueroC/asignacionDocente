@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Universidad, Facultad, Escuela, TipoDocente, CategoriaDocente, Docente, PeriodoAcademico
+from .models import Universidad, Facultad, Escuela, TipoDocente, CategoriaDocente, Docente, PeriodoAcademico, asignacionDocente
 
 # Universidad Serializer
 class UniversidadSerializer(serializers.ModelSerializer):
@@ -63,3 +63,12 @@ class PeriodoAcademicoSerializer(serializers.ModelSerializer):
     class Meta:
         model = PeriodoAcademico
         fields = ['periodoAcademicoCodigo', 'nombre', 'anio', 'fechaIni', 'fechaFinal', 'estado', 'UniversidadCodigo']
+
+class asignacionDocenteSerializer(serializers.ModelSerializer):
+    facultadCodigo = serializers.PrimaryKeyRelatedField(queryset=Facultad.objects.all())
+    escuelaCodigo = serializers.PrimaryKeyRelatedField(queryset=Escuela.objects.all())
+    DocenteCodigo = serializers.PrimaryKeyRelatedField(queryset=Docente.objects.all())
+
+    class Meta:
+        model = asignacionDocente
+        fields = ['nrc', 'clave', 'asignatura', 'codigo', 'seccion', 'modalidad', 'campus', 'tipo', 'cupo', 'inscripto', 'horario','dias', 'Aula', 'creditos', 'facultadCodigo', 'escuelaCodigo', 'DocenteCodigo' ]

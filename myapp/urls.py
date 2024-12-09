@@ -46,7 +46,12 @@ urlpatterns = [
     path('export/facultad', views.FacultadExport),
     path('export/escuela', views.EscuelaExport),
     path('export/docente', views.DocenteExport),
+<<<<<<< HEAD
     path('export/asignacionDocenteExport', views.asignacionDocenteExport),
     # import
     path('import/asignacion', views.ImportAsignacion.as_view()),
+=======
+    path('import/asignacion', views.ImportAsignacion.as_view())
+   
+>>>>>>> 227f55094c228604fdfeafb95a8b928720a5ffad
 ]

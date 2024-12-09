@@ -404,7 +404,6 @@ def DocenteExport(request):
 
   return response
 
-<<<<<<< HEAD
 def asignacionDocenteExport(request):
   queryset = asignacionDocente.objects.all()
   data = []
@@ -440,8 +439,6 @@ def asignacionDocenteExport(request):
 #endregion
 
 #region Import
-=======
->>>>>>> 227f55094c228604fdfeafb95a8b928720a5ffad
 class ImportAsignacion(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
@@ -452,13 +449,8 @@ class ImportAsignacion(APIView):
             return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-<<<<<<< HEAD
             # Read the Excel file
             df = panda.read_excel(excel_file)
-=======
-            # Read Excel file
-            df = pd.read_excel(excel_file)
->>>>>>> 227f55094c228604fdfeafb95a8b928720a5ffad
 
             # Required columns
             required_columns = [
@@ -467,21 +459,14 @@ class ImportAsignacion(APIView):
                 'Aula', 'creditos', 'facultadCodigo', 'escuelaCodigo', 'DocenteCodigo'
             ]
 
-<<<<<<< HEAD
             # Validate required columns
             missing_columns = [col for col in required_columns if col not in df.columns]
             if missing_columns:
-=======
-            # Validate columns
-            if not all(col in df.columns for col in required_columns):
-                missing_columns = [col for col in required_columns if col not in df.columns]
->>>>>>> 227f55094c228604fdfeafb95a8b928720a5ffad
                 return Response(
                     {"error": f"Missing required columns: {', '.join(missing_columns)}"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-<<<<<<< HEAD
             records_created = 0
             for _, row in df.iterrows():
                 try:
@@ -537,59 +522,15 @@ class ImportAsignacion(APIView):
                         {"error": f"Error processing row: {str(e)}"},
                         status=status.HTTP_400_BAD_REQUEST
                     )
-=======
-            # Process rows
-            records_created = 0
-            for _, row in df.iterrows():
-                facultad = Facultad.objects.get(pk=row['facultadCodigo'])
-                escuela = Escuela.objects.get(pk=row['escuelaCodigo'])
-                docente = Docente.objects.get(pk=row['DocenteCodigo'])
-
-                obj, created = asignacionDocente.objects.get_or_create(
-                    nrc=row['nrc'],
-                    clave=row['clave'],
-                    asignatura=row['asignatura'],
-                    codigo=row['codigo'],
-                    seccion=row['seccion'],
-                    modalidad=row['modalidad'],
-                    campus=row['campus'],
-                    tipo=row['tipo'],
-                    cupo=row['cupo'],
-                    inscripto=row['inscripto'],
-                    horario=row['horario'],
-                    dias=row['dias'],
-                    Aula=row['Aula'],
-                    creditos=row['creditos'],
-                    facultadCodigo=facultad,
-                    escuelaCodigo=escuela,
-                    DocenteCodigo=docente
-                )
-                if created:
-                    records_created += 1
->>>>>>> 227f55094c228604fdfeafb95a8b928720a5ffad
 
             return Response(
                 {"message": f"Successfully imported {records_created} records."},
                 status=status.HTTP_201_CREATED
             )
 
-<<<<<<< HEAD
-=======
-        except Facultad.DoesNotExist:
-            return Response({"error": "Invalid Facultad ID provided"}, status=status.HTTP_400_BAD_REQUEST)
-        except Escuela.DoesNotExist:
-            return Response({"error": "Invalid Escuela ID provided"}, status=status.HTTP_400_BAD_REQUEST)
-        except Docente.DoesNotExist:
-            return Response({"error": "Invalid Docente ID provided"}, status=status.HTTP_400_BAD_REQUEST)
->>>>>>> 227f55094c228604fdfeafb95a8b928720a5ffad
         except Exception as e:
             return Response(
                 {"error": f"An error occurred: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-<<<<<<< HEAD
-=======
-
-
->>>>>>> 227f55094c228604fdfeafb95a8b928720a5ffad
 #endregion

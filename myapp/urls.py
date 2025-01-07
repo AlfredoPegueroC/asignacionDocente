@@ -37,6 +37,14 @@ urlpatterns = [
     path('api/categoriadocente/delete/<int:pk>/', views.delete_categoriaDocente),
     path('api/docente/delete/<int:pk>/', views.delete_docente),
     path('api/periodoacademico/delete/<int:pk>/', views.delete_periodoAcademico),
+    # DETAILS
+    path('api/universidad/<int:pk>/', views.details_universidad, name='detalle_universidad'),
+    path('api/facultad/<int:pk>/', views.details_facultad, name='detalle_facultad'),
+    path('api/escuela/<int:pk>/', views.details_escuela, name='detalle_escuela'),
+    path('api/tipodocente/<int:pk>/', views.details_tipoDocente, name='detalle_tipoDocente'),
+    path('api/categoriadocente/<int:pk>/', views.details_categoriaDocente, name='detalle_categoriaDocente'),
+    path('api/docente/<int:pk>/', views.details_docente, name='detalle_docente'),
+    path('api/periodoacademico/<int:pk>/', views.details_periodoAcademico, name='detalle_periodoAcademico'),
     # AUTH
     path('api/login', views.login_view),
     path('api/logout', views.logout_view),
@@ -49,4 +57,6 @@ urlpatterns = [
     path('export/asignacionDocenteExport', views.asignacionDocenteExport),
     # import
     path('import/asignacion', views.ImportAsignacion.as_view()),
+   
+
 ]

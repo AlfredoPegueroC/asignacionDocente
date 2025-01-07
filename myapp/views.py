@@ -271,6 +271,71 @@ def delete_periodoAcademico(request, pk):
 
 #endregion
 
+#region DETAILTS
+@api_view(['GET'])
+def details_universidad(request, pk):
+    universidad = Universidad.objects.filter(pk=pk).first()
+
+    if universidad is None:
+        return Response({'error': 'Universidad not found'}, status=status.HTTP_404_NOT_FOUND)
+    serializer = UniversidadSerializer(universidad)
+
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def details_facultad(request, pk):
+    facultad = Facultad.objects.filter(pk=pk).first()
+    if facultad is None:
+        return Response({'error': 'Facultad not found'}, status=status.HTTP_404_NOT_FOUND)
+    serializer = FacultadSerializer(facultad)
+
+    return Response(serializer.data, status=status.HTTP_200_OK)
+@api_view(['GET'])
+def details_escuela(request, pk):
+    escuela = Escuela.objects.filter(pk=pk).first()
+    if escuela is None:
+        return Response({'error': 'Escuela not found'}, status=status.HTTP_404_NOT_FOUND)
+    serializer = EscuelaSerializer(escuela)
+
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def details_tipoDocente(request, pk):
+    tipoDocente = TipoDocente.objects.filter(pk=pk).first()
+    if tipoDocente is None:
+        return Response({'error': 'Tipo docente not found'}, status=status.HTTP_404_NOT_FOUND)
+    serializer = TipoDocenteSerializer(tipoDocente)
+
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def details_categoriaDocente(request, pk):
+    categoriaDocente = CategoriaDocente.objects.filter(pk=pk).first()
+    if categoriaDocente is None:
+        return Response({'error': 'Categoria docente not found'}, status=status.HTTP_404_NOT_FOUND)
+    serializer = CategoriaDocenteSerializer(categoriaDocente)
+
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def details_docente(request, pk):
+    docente = Docente.objects.filter(pk=pk).first()
+    if docente is None:
+        return Response({'error': 'Docente not found'}, status=status.HTTP_404_NOT_FOUND)
+    serializer = DocenteSerializer(docente)
+
+    return Response(serializer.data, status=status.HTTP_200_OK)
+    
+@api_view(['GET'])
+def details_periodoAcademico(request, pk):
+    periodo = PeriodoAcademico.objects.filter(pk=pk).first()
+    if periodo is None:
+        return Response({'error': 'Periodo academico not found'}, status=status.HTTP_404_NOT_FOUND)
+    serializer = PeriodoAcademicoSerializer(periodo)
+
+    return Response(serializer.data, status=status.HTTP_200_OK)
+#endregion
+
 #region Auth
 @api_view(['POST'])
 def login_view(request):

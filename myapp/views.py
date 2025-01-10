@@ -43,8 +43,6 @@ def index(request):
 
 #region CREATE
 
-
-
 @api_view(['POST'])
 def create_Universidad(request):
   return  createHandle(request, UniversidadSerializer)
@@ -145,7 +143,7 @@ def update_escuela(request, pk):
   except Escuela.DoesNotExist:
     return JsonResponse({'error': 'Escuela not found'}, status=status.HTTP_404_NOT_FOUND)
   if request.method in ['PUT', 'PATCH']:
-      ser = EscuelaSerializer(Escuela, data=request.data, partial=(request.method == 'PATCH'))
+      ser = EscuelaSerializer(escuela, data=request.data, partial=(request.method == 'PATCH'))
       if ser.is_valid():
           ser.save()
           return JsonResponse(ser.data, status=status.HTTP_200_OK)
@@ -184,7 +182,7 @@ def update_docente(request, pk):
   except Docente.DoesNotExist:
     return JsonResponse({'error': 'Tipo docente not found'}, status=status.HTTP_404_NOT_FOUND)
   if request.method in ['PUT', 'PATCH']:
-      ser = DocenteSerializer(categoriaDocente, data=request.data, partial=(request.method == 'PATCH'))
+      ser = DocenteSerializer(docente, data=request.data, partial=(request.method == 'PATCH'))
       if ser.is_valid():
           ser.save()
           return JsonResponse(ser.data, status=status.HTTP_200_OK)
@@ -208,7 +206,6 @@ def update_periodoAcademico(request, pk):
 @api_view(['DELETE'])
 def delete_universidad(request, pk):
     try:
-        # Use UniversidadCodigo to fetch the university by its custom field
         universidad = Universidad.objects.get(pk=pk)
         universidad.delete()  # Delete the specific university
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -325,7 +322,7 @@ def details_docente(request, pk):
     serializer = DocenteSerializer(docente)
 
     return Response(serializer.data, status=status.HTTP_200_OK)
-    
+
 @api_view(['GET'])
 def details_periodoAcademico(request, pk):
     periodo = PeriodoAcademico.objects.filter(pk=pk).first()

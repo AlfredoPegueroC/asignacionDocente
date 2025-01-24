@@ -108,38 +108,35 @@ class Docente(models.Model):
 class PeriodoAcademico(models.Model):
   periodoAcademicoCodigo = models.AutoField(primary_key=True, editable=False)
   nombre = models.CharField(max_length=50, null=True)
-  anio = models.SmallIntegerField()
-  fechaIni = models.DateField(auto_now=False,auto_now_add=False)
-  fechaFinal = models.DateField(auto_now=False, auto_now_add=False)
   estado = models.CharField(max_length=15, choices=[('A', 'Abierto'), ('C', 'Cerrado')])
 
   UniversidadCodigo = models.ForeignKey(Universidad, on_delete=models.CASCADE)
 
   def __str__(self):
-      return f"{self.nombre} {self.anio} {self.fechaIni} {self.fechaFinal}"
+      return f"{self.nombre} {self.estado}"
   
 
 class asignacionDocente(models.Model):
-  nrc = models.CharField(max_length=10)
-  clave = models.CharField(max_length=15)
-  asignatura = models.CharField(max_length=25)
-  codigo = models.CharField(max_length=15)
-  seccion = models.CharField(max_length=10)
-  modalidad = models.CharField(max_length=15)
-  campus = models.CharField(max_length=20)
-  tipo = models.CharField(max_length=20)
-  cupo =models.CharField(max_length=20)
-  inscripto = models.CharField(max_length=20)
-  horario = models.CharField(max_length=20)
-  dias = models.CharField(max_length=20)
-  Aula = models.CharField(max_length=20)
-  creditos = models.CharField(max_length=20)
+    nrc = models.CharField(max_length=40)
+    clave = models.CharField(max_length=40)
+    asignatura = models.CharField(max_length=40)
+    codigo = models.CharField(max_length=40)
+    seccion = models.CharField(max_length=40)
+    modalidad = models.CharField(max_length=40)
+    campus = models.CharField(max_length=40)
+    tipo = models.CharField(max_length=40)
+    cupo = models.CharField(max_length=40)
+    inscripto = models.CharField(max_length=40)
+    horario = models.CharField(max_length=40)
+    dias = models.CharField(max_length=40)
+    Aula = models.CharField(max_length=40)
+    creditos = models.CharField(max_length=40)
+    period = models.CharField(max_length=7, default='2025-20')  # Add the period field (e.g., '2025-20')
 
-  #FOREIGHKEY 
-  facultadCodigo = models.ForeignKey(Facultad ,on_delete=models.CASCADE)
-  escuelaCodigo = models.ForeignKey(Escuela ,on_delete=models.CASCADE)
-  DocenteCodigo = models.ForeignKey(Docente ,on_delete=models.CASCADE)
-
-  def __str__(self):
+    facultadCodigo = models.ForeignKey(Facultad, on_delete=models.CASCADE)
+    escuelaCodigo = models.ForeignKey(Escuela, on_delete=models.CASCADE)
+    DocenteCodigo = models.ForeignKey(Docente, on_delete=models.CASCADE)
+    
+    #FOREIGHKEY 
+    def __str__(self):
       return f"{self.nrc} {self.clave} {self.asignatura}"
-  

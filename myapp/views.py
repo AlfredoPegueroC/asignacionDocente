@@ -467,36 +467,37 @@ def DocenteExport(request):
   return response
 
 def asignacionDocenteExport(request):
-  queryset = asignacionDocente.objects.all()
-  data = []
-  
-  for asignacion in queryset:
-    data.append({
-      'NRC': asignacion.nrc,
-      'Clave': asignacion.clave,
-      'Asignatura': asignacion.asignatura,
-      'codigo': asignacion.codigo,
-      'seccion': asignacion.seccion,
-      'modalidad': asignacion.modalidad,
-      'campus': asignacion.campus,
-      'tipo': asignacion.tipo,
-      'cupo': asignacion.cupo,
-      'inscripto': asignacion.inscripto,
-      'horario': asignacion.horario,
-      'Aula': asignacion.Aula,
-      'creditos': asignacion.creditos,
-      'facultadCodigo': asignacion.facultadCodigo,
-      'escuelaCodigo': asignacion.escuelaCodigo,
-      'DocenteCodigo': asignacion.DocenteCodigo,
-    })
+    queryset = asignacionDocente.objects.select_related('facultadCodigo', 'escuelaCodigo', 'DocenteCodigo').all()
+    data = []
 
-  response = HttpResponse(content_type='application/vnd.ms-excel')
-  response['Content-Disposition'] = 'attachment; filename="Asignacion_data.xlsx"'
+    for asignacion in queryset:
+      data.append({
+        'NRC': asignacion.nrc,
+        'Clave': asignacion.clave,
+        'Asignatura': asignacion.asignatura,
+        'Código': asignacion.codigo,
+        'Sección': asignacion.seccion,
+        'Modalidad': asignacion.modalidad,
+        'Campus': asignacion.campus,
+        'Tipo': asignacion.tipo,
+        'Cupo': asignacion.cupo,
+        'Inscripto': asignacion.inscripto,
+        'Horario': asignacion.horario,
+        'Aula': asignacion.Aula,
+        'Créditos': asignacion.creditos,
+        'Facultad': asignacion.facultadCodigo.nombre if asignacion.facultadCodigo else None,
+        'Escuela': asignacion.escuelaCodigo.nombre if asignacion.escuelaCodigo else None,
+        'Docente': asignacion.DocenteCodigo.nombre if asignacion.DocenteCodigo else None,
+      })
 
-  with panda.ExcelWriter(response, engine='openpyxl') as writer:
-    panda.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
+    response = HttpResponse(content_type='application/vnd.ms-excel')
+    response['Content-Disposition'] = 'attachment; filename="Asignacion_data.xlsx"'
 
-  return response
+    with panda.ExcelWriter(response, engine='openpyxl') as writer:
+        panda.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
+
+    return response
+
 
 #endregion
 
@@ -505,8 +506,11 @@ class ImportAsignacion(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request, *args, **kwargs):
-        excel_file = request.FILES.get('excel_file')
+        period = request.data.get('period')  # Retrieve the period
+        if not period:
+            return Response({"error": "Period is required"}, status=status.HTTP_400_BAD_REQUEST)
 
+        excel_file = request.FILES.get('excel_file')
         if not excel_file:
             return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -514,14 +518,13 @@ class ImportAsignacion(APIView):
             # Read the Excel file
             df = panda.read_excel(excel_file)
 
-            # Required columns
             required_columns = [
                 'nrc', 'clave', 'asignatura', 'codigo', 'seccion', 'modalidad',
                 'campus', 'tipo', 'cupo', 'inscripto', 'horario', 'dias',
-                'Aula', 'creditos', 'facultadCodigo', 'escuelaCodigo', 'DocenteCodigo'
+                'Aula', 'creditos', 'facultadNombre', 'escuelaNombre', 'docenteNombre'
             ]
 
-            # Validate required columns
+            # Check if all required columns are present
             missing_columns = [col for col in required_columns if col not in df.columns]
             if missing_columns:
                 return Response(
@@ -532,10 +535,10 @@ class ImportAsignacion(APIView):
             records_created = 0
             for _, row in df.iterrows():
                 try:
-                    # Get or create related models
-                    facultad = Facultad.objects.get(pk=row['facultadCodigo'])
-                    escuela = Escuela.objects.get(pk=row['escuelaCodigo'])
-                    docente = Docente.objects.get(pk=row['DocenteCodigo'])
+                    # Fetch Facultad, Escuela, and Docente using their 'nombre'
+                    facultad = Facultad.objects.get(nombre=row['facultadNombre'])
+                    escuela = Escuela.objects.get(nombre=row['escuelaNombre'])
+                    docente = Docente.objects.get(nombre=row['docenteNombre'])
 
                     # Create or get the asignacionDocente record
                     obj, created = asignacionDocente.objects.get_or_create(
@@ -553,25 +556,26 @@ class ImportAsignacion(APIView):
                         dias=row['dias'],
                         Aula=row['Aula'],
                         creditos=row['creditos'],
-                        facultadCodigo=facultad,
-                        escuelaCodigo=escuela,
-                        DocenteCodigo=docente
+                        facultadCodigo=facultad,  # Associate the fetched Facultad
+                        escuelaCodigo=escuela,  # Associate the fetched Escuela
+                        DocenteCodigo=docente,  # Associate the fetched Docente
+                        period=period  # Store the period
                     )
                     if created:
                         records_created += 1
                 except Facultad.DoesNotExist:
                     return Response(
-                        {"error": f"Facultad with ID {row['facultadCodigo']} does not exist."},
+                        {"error": f"Facultad with nombre {row['facultadNombre']} does not exist."},
                         status=status.HTTP_400_BAD_REQUEST
                     )
                 except Escuela.DoesNotExist:
                     return Response(
-                        {"error": f"Escuela with ID {row['escuelaCodigo']} does not exist."},
+                        {"error": f"Escuela with nombre {row['escuelaNombre']} does not exist."},
                         status=status.HTTP_400_BAD_REQUEST
                     )
                 except Docente.DoesNotExist:
                     return Response(
-                        {"error": f"Docente with ID {row['DocenteCodigo']} does not exist."},
+                        {"error": f"Docente with nombre {row['docenteNombre']} does not exist."},
                         status=status.HTTP_400_BAD_REQUEST
                     )
                 except KeyError as e:
@@ -595,4 +599,5 @@ class ImportAsignacion(APIView):
                 {"error": f"An error occurred: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
 #endregion

@@ -37,6 +37,7 @@ urlpatterns = [
     path('api/categoriadocente/delete/<int:pk>/', views.delete_categoriaDocente),
     path('api/docente/delete/<int:pk>/', views.delete_docente),
     path('api/periodoacademico/delete/<int:pk>/', views.delete_periodoAcademico),
+    path('api/asignacionDocente/delete/<int:pk>/', views.delete_asignacionDocente),
     # DETAILS
     path('api/universidad/<int:pk>/', views.details_universidad, name='detalle_universidad'),
     path('api/facultad/<int:pk>/', views.details_facultad, name='detalle_facultad'),

@@ -117,6 +117,7 @@ class PeriodoAcademico(models.Model):
   
 
 class asignacionDocente(models.Model):
+    ADIDcodigo = models.AutoField(primary_key=True)
     nrc = models.CharField(max_length=40)
     clave = models.CharField(max_length=40)
     asignatura = models.CharField(max_length=40)

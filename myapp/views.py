@@ -19,7 +19,7 @@ from .models import (
     Docente, 
     PeriodoAcademico,
     asignacionDocente)
-from .handles import createHandle, getAllHandle
+from .handles import createHandle, getAllHandle, deleteHandler
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view
 from rest_framework.views import APIView
@@ -263,6 +263,17 @@ def delete_periodoAcademico(request, pk):
         return Response(status=status.HTTP_204_NO_CONTENT)
     except PeriodoAcademico.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['DELETE'])
+def delete_asignacionDocente(request, pk):
+    try:
+        asignacion = asignacionDocente.objects.get(pk=pk)
+        asignacion.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except asignacionDocente.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+
 
 #endregion
 

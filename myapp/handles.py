@@ -16,7 +16,7 @@ def getAllHandle(request, modelData, serializer_class):
     
   try:
     # Fetch all objects
-    queryset = modelData.objects.all()
+    queryset = modelData.objects.all() # CHECK THIS LATER
 
     # Filter by query parameters (example: name, state)
     filters = {}

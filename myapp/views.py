@@ -33,8 +33,6 @@ from rest_framework_simplejwt.tokens import RefreshToken,TokenError
 import pandas as panda
 
 
-
-
 # Create your views here.
 def index(request):
   return render(request, 'client/index.html')
@@ -364,13 +362,13 @@ def logout_view(request):
         if not refresh_token:
             return Response({"error": "Refresh token is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Blacklist the refresh token
+        # Create the RefreshToken instance and blacklist it
         token = RefreshToken(refresh_token)
-        token.blacklist()
+        token.blacklist()  # This will invalidate the token
         
         return Response({"message": "Logout successful"}, status=status.HTTP_200_OK)
     
-    except TokenError as e:  # Handles case if the token is invalid or already blacklisted
+    except TokenError as e:  # Handles invalid or expired token
         return Response({"error": "Invalid or expired token"}, status=status.HTTP_400_BAD_REQUEST)
     
     except Exception as e:
@@ -502,6 +500,221 @@ def asignacionDocenteExport(request):
 #endregion
 
 #region Import
+class ImportFacultad(APIView):
+  parser_classes = [MultiPartParser, FormParser]
+
+  def post(self, request, *args, **kwargs):
+    excel_file = request.FILES.get('excel_file')
+    if not excel_file:
+        return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        # Read the Excel file
+        df = panda.read_excel(excel_file)
+
+        required_columns = ['Nombre', 'Estado', 'Universidad']
+        # Check if all required columns are present
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        if missing_columns:
+            return Response(
+                {"error": f"Missing required columns: {', '.join(missing_columns)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        records_created = 0
+        for _, row in df.iterrows():
+            try:
+              universidad = Universidad.objects.get(nombre=row['Universidad'])
+
+              obj, created = Facultad.objects.get_or_create(
+                  nombre=row['Nombre'],
+                  estado=row['Estado'],
+                  UniversidadCodigo=universidad
+              )
+              if created:
+                records_created += 1
+            except Universidad.DoesNotExist:
+              return Response(
+                  {"error": f"Universidad with nombre {row['UniversidadCodigo']} does not exist."},
+                  status=status.HTTP_400_BAD_REQUEST
+              )
+            except KeyError as e:
+              return Response(
+                  {"error": f"Missing data for column: {str(e)}"},
+                  status=status.HTTP_400_BAD_REQUEST
+              )
+            except Exception as e:
+              return Response(
+                  {"error": f"Error processing row: {str(e)}"},
+                  status=status.HTTP_400_BAD_REQUEST
+              )
+        return Response(
+            {"message": f"Successfully imported {records_created} records."},
+            status=status.HTTP_201_CREATED
+        )
+    except Exception as e:
+        return Response(
+            {"error": f"An error occurred: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+class ImportEscuela(APIView):
+  parser_classes = [MultiPartParser, FormParser]
+
+  def post(self, request, *args, **kwargs):
+    excel_file = request.FILES.get('excel_file')
+    if not excel_file:
+        return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        # Read the Excel file
+        df = panda.read_excel(excel_file)
+
+        required_columns = ['Nombre', 'Estado', 'Universidad', 'Facultad']
+        # Check if all required columns are present
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        if missing_columns:
+            return Response(
+                {"error": f"Missing required columns: {', '.join(missing_columns)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        records_created = 0
+        for _, row in df.iterrows():
+            try:
+              universidad = Universidad.objects.get(nombre=row['Universidad'])
+              facultad = Facultad.objects.get(nombre=row['Facultad'])
+
+              obj, created = Escuela.objects.get_or_create(
+                  nombre=row['Nombre'],
+                  estado=row['Estado'],
+                  UniversidadCodigo=universidad,
+                  facultadCodigo=facultad
+              )
+              if created:
+                records_created += 1
+            except Universidad.DoesNotExist:
+              return Response(
+                  {"error": f"Universidad with nombre {row['UniversidadCodigo']} does not exist."},
+                  status=status.HTTP_400_BAD_REQUEST
+              )
+            except Facultad.DoesNotExist:
+              return Response(
+                  {"error": f"Facultad with nombre {row['Facultad']} does not exist."},
+                  status=status.HTTP_400_BAD_REQUEST
+              )
+            except KeyError as e:
+              return Response(
+                  {"error": f"Missing data for column: {str(e)}"},
+                  status=status.HTTP_400_BAD_REQUEST
+              )
+            except Exception as e:
+              return Response(
+                  {"error": f"Error processing row: {str(e)}"},
+                  status=status.HTTP_400_BAD_REQUEST
+              )
+        return Response(
+            {"message": f"Successfully imported {records_created} records."},
+            status=status.HTTP_201_CREATED
+        )
+    except Exception as e:
+        return Response(
+            {"error": f"An error occurred: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+class ImportDocente(APIView):
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request, *args, **kwargs):
+        excel_file = request.FILES.get('excel_file')
+        if not excel_file:
+            return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Read the Excel file
+            df = panda.read_excel(excel_file)
+
+            required_columns = [
+                'Nombre', 'Apellidos', 'Sexo', 'Estado Civil', 'Fecha de nacimiento',
+                'Telefono', 'Direccion', 'Estado', 'Universidad', 'Facultad', 'Escuela',
+                'Tipo de docente', 'Categoria docente'
+            ]
+            # Check if all required columns are present
+            missing_columns = [col for col in required_columns if col not in df.columns]
+            if missing_columns:
+                return Response(
+                    {"error": f"Missing required columns: {', '.join(missing_columns)}"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            records_created = 0
+            for _, row in df.iterrows():
+                try:
+                    universidad = Universidad.objects.get(nombre=row['Universidad'])
+                    facultad = Facultad.objects.get(nombre=row['Facultad'])
+                    escuela = Escuela.objects.get(nombre=row['Escuela'])
+                    tipoDocente = TipoDocente.objects.get(nombre=row['Tipo de docente'])
+                    categoriaDocente = CategoriaDocente.objects.get(nombre=row['Categoria docente'])
+
+                    obj, created = Docente.objects.get_or_create(
+                        nombre=row['Nombre'],
+                        apellidos=row['Apellidos'],
+                        sexo=row['Sexo'],
+                        estado_civil=row['Estado Civil'],
+                        fecha_nacimiento=row['Fecha de nacimiento'],
+                        telefono=row['Telefono'],
+                        direccion=row['Direccion'],
+                        estado=row['Estado'],
+                        UniversidadCodigo=universidad,
+                        facultadCodigo=facultad,
+                        escuelaCodigo=escuela,
+                        tipoDocenteCodigo=tipoDocente,
+                        categoriaCodigo=categoriaDocente
+                    )
+                    if created:
+                        records_created += 1
+                except Universidad.DoesNotExist:
+                    return Response(
+                        {"error": f"Universidad with nombre {row['Universidad']} does not exist."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                except Facultad.DoesNotExist:
+                    return Response(
+                        {"error": f"Facultad with nombre {row['Facultad']} does not exist."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                except Escuela.DoesNotExist:
+                    return Response(
+                        {"error": f"Escuela with nombre {row['Escuela']} does not exist."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                except TipoDocente.DoesNotExist:
+                    return Response(
+                        {"error": f"Tipo de docente with nombre {row['Tipo de docente']} does not exist."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                except CategoriaDocente.DoesNotExist:
+                    return Response(
+                        {"error": f"Categoria docente with nombre {row['Categoria docente']} does not exist."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                except KeyError as e:
+                    return Response(
+                        {"error": f"Missing data for column: {str(e)}"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+        except Exception as e:
+            return Response(
+                {"error": f"Error processing row: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return Response(
+            {"message": f"Import completed successfully. Records created: {records_created}"},
+            status=status.HTTP_201_CREATED
+        )
+
 class ImportAsignacion(APIView):
     parser_classes = [MultiPartParser, FormParser]
 

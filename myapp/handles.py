@@ -33,7 +33,7 @@ def getAllHandle(request, modelData, serializer_class):
 
     # Pagination
     paginator = PageNumberPagination()
-    paginator.page_size = 10  # Default items per page
+    paginator.page_size = 30  # Default items per page
     paginated_queryset = paginator.paginate_queryset(queryset, request)
 
     # Serialize paginated data

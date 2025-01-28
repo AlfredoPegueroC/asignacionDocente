@@ -223,7 +223,7 @@ def delete_facultad(request, pk):
 def delete_escuela(request, pk):
     try:
         escuela = Escuela.objects.get(pk=pk)
-        Escuela.delete()
+        escuela.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     except Escuela.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)

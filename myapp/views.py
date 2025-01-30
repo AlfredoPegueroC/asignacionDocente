@@ -485,18 +485,19 @@ def asignacionDocenteExport(request):
         'Clave': asignacion.clave,
         'Asignatura': asignacion.asignatura,
         'Código': asignacion.codigo,
+        'Profesor': f"{asignacion.DocenteCodigo.nombre} {asignacion.DocenteCodigo.apellidos}" if asignacion.DocenteCodigo else None,
         'Sección': asignacion.seccion,
         'Modalidad': asignacion.modalidad,
         'Campus': asignacion.campus,
+        'Facultad': asignacion.facultadCodigo.nombre if asignacion.facultadCodigo else None,
+        'Escuela': asignacion.escuelaCodigo.nombre if asignacion.escuelaCodigo else None,
         'Tipo': asignacion.tipo,
         'Cupo': asignacion.cupo,
         'Inscripto': asignacion.inscripto,
         'Horario': asignacion.horario,
+        'Dias': asignacion.dias,
         'Aula': asignacion.Aula,
         'Créditos': asignacion.creditos,
-        'Facultad': asignacion.facultadCodigo.nombre if asignacion.facultadCodigo else None,
-        'Escuela': asignacion.escuelaCodigo.nombre if asignacion.escuelaCodigo else None,
-        'Docente': asignacion.DocenteCodigo.nombre if asignacion.DocenteCodigo else None,
       })
 
     response = HttpResponse(content_type='application/vnd.ms-excel')

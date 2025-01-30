@@ -198,6 +198,20 @@ def update_periodoAcademico(request, pk):
           ser.save()
           return JsonResponse(ser.data, status=status.HTTP_200_OK)
       return JsonResponse(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['PUT', 'PATCH'])
+def update_asignacion(request, pk):
+    try:
+        asignacion = asignacionDocente.objects.get(pk=pk)
+    except asignacionDocente.DoesNotExist:
+        return JsonResponse({'error': "Asignacion Docente No encontrada"}, status=status.HTTP_404_NOT_FOUND)
+    if request.method in ['PUT', 'PATCH']:
+        ser = asignacionDocenteSerializer(asignacion, data=request.data, partial=(request.method == 'PATCH'))
+        if ser.is_valid():
+            ser.save()
+            return JsonResponse(ser.data, status=status.HTTP_200_OK)
+        return JsonResponse(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
 #endregion
 
 #region DELETE
@@ -338,6 +352,15 @@ def details_periodoAcademico(request, pk):
     if periodo is None:
         return Response({'error': 'Periodo academico not found'}, status=status.HTTP_404_NOT_FOUND)
     serializer = PeriodoAcademicoSerializer(periodo)
+
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def details_Asignacion(request, pk):
+    asignacion = asignacionDocente.objects.filter(pk=pk).first()
+    if asignacion is None:
+        return Response({'error': 'Periodo academico not found'}, status=status.HTTP_404_NOT_FOUND)
+    serializer = asignacionDocenteSerializer(asignacion)
 
     return Response(serializer.data, status=status.HTTP_200_OK)
 #endregion

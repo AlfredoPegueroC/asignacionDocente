@@ -29,6 +29,7 @@ urlpatterns = [
     path('api/categoriadocente/edit/<int:pk>/', views.update_categoriaDocente),
     path('api/docente/edit/<int:pk>/', views.update_docente),
     path('api/periodoacademico/edit/<int:pk>/', views.update_periodoAcademico),
+    path('api/asignacion/edit/<int:pk>/', views.update_asignacion),
     # URLS DELETE
     path('api/universidad/delete/<pk>/', views.delete_universidad),
     path('api/facultad/delete/<int:pk>/', views.delete_facultad),
@@ -46,6 +47,7 @@ urlpatterns = [
     path('api/categoriadocente/<int:pk>/', views.details_categoriaDocente, name='detalle_categoriaDocente'),
     path('api/docente/<int:pk>/', views.details_docente, name='detalle_docente'),
     path('api/periodoacademico/<int:pk>/', views.details_periodoAcademico, name='detalle_periodoAcademico'),
+    path('api/asignacion/<int:pk>/', views.details_Asignacion),
     # AUTH
     path('api/login', views.login_view),
     path('api/logout', views.logout_view),

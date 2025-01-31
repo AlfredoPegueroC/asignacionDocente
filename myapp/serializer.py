@@ -62,7 +62,7 @@ class PeriodoAcademicoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PeriodoAcademico
-        fields = ['periodoAcademicoCodigo', 'nombre', 'anio', 'fechaIni', 'fechaFinal', 'estado', 'UniversidadCodigo']
+        fields = ['periodoAcademicoCodigo', 'nombre', 'estado', 'UniversidadCodigo']
 
 class asignacionDocenteSerializer(serializers.ModelSerializer):
     facultadCodigo = serializers.PrimaryKeyRelatedField(queryset=Facultad.objects.all())

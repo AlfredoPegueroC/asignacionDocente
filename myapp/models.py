@@ -108,7 +108,7 @@ class Docente(models.Model):
 class PeriodoAcademico(models.Model):
   periodoAcademicoCodigo = models.AutoField(primary_key=True, editable=False)
   nombre = models.CharField(max_length=50, null=True)
-  estado = models.CharField(max_length=15, choices=[('A', 'Abierto'), ('C', 'Cerrado')])
+  estado = models.CharField(max_length=15, choices=[('Abierto', 'Abierto'), ('Cerrado', 'Cerrado')])
 
   UniversidadCodigo = models.ForeignKey(Universidad, on_delete=models.CASCADE)
 

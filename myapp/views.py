@@ -559,7 +559,7 @@ class ImportFacultad(APIView):
         records_created = 0
         for _, row in df.iterrows():
             try:
-              universidad = Universidad.objects.get(nombre=row['Universidad'])
+              universidad = Universidad.objects.filter(nombre=row['Universidad']).first()
 
               obj, created = Facultad.objects.get_or_create(
                   nombre=row['Nombre'],
@@ -617,8 +617,8 @@ class ImportEscuela(APIView):
         records_created = 0
         for _, row in df.iterrows():
             try:
-              universidad = Universidad.objects.get(nombre=row['Universidad'])
-              facultad = Facultad.objects.get(nombre=row['Facultad'])
+              universidad = Universidad.objects.filter(nombre=row['Universidad']).first()
+              facultad = Facultad.objects.filter(nombre=row['Facultad']).first()
 
               obj, created = Escuela.objects.get_or_create(
                   nombre=row['Nombre'],
@@ -686,11 +686,12 @@ class ImportDocente(APIView):
             records_created = 0
             for _, row in df.iterrows():
                 try:
-                    universidad = Universidad.objects.get(nombre=row['Universidad'])
-                    facultad = Facultad.objects.get(nombre=row['Facultad'])
-                    escuela = Escuela.objects.get(nombre=row['Escuela'])
-                    tipoDocente = TipoDocente.objects.get(nombre=row['Tipo de docente'])
-                    categoriaDocente = CategoriaDocente.objects.get(nombre=row['Categoria docente'])
+                    
+                    universidad = Universidad.objects.filter(nombre=row['Universidad']).first()
+                    facultad = Facultad.objects.filter(nombre=row['Facultad']).first()
+                    escuela = Escuela.objects.filter(nombre=row['Escuela']).first()
+                    tipoDocente = TipoDocente.objects.filter(nombre=row['Tipo de docente']).first()
+                    categoriaDocente = CategoriaDocente.objects.filter(nombre=row['Categoria docente']).first()
 
                     obj, created = Docente.objects.get_or_create(
                         nombre=row['Nombre'],
@@ -784,9 +785,9 @@ class ImportAsignacion(APIView):
             for _, row in df.iterrows():
                 try:
                     # Fetch Facultad, Escuela, and Docente using their 'nombre'
-                    facultad = Facultad.objects.get(nombre=row['facultadNombre'])
-                    escuela = Escuela.objects.get(nombre=row['escuelaNombre'])
-                    docente = Docente.objects.get(nombre=row['docenteNombre'])
+                    facultad = Facultad.objects.filter(nombre=row['facultadNombre']).first()
+                    escuela = Escuela.objects.filter(nombre=row['escuelaNombre']).first()
+                    docente = Docente.objects.filter(nombre=row['docenteNombre']).first()
 
                     # Create or get the asignacionDocente record
                     obj, created = asignacionDocente.objects.get_or_create(

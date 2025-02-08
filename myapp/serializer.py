@@ -71,4 +71,4 @@ class asignacionDocenteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = asignacionDocente
-        fields = ['ADIDcodigo','nrc', 'clave', 'asignatura', 'codigo', 'seccion', 'modalidad', 'campus', 'tipo', 'cupo', 'inscripto', 'horario','dias', 'Aula', 'creditos', 'facultadCodigo', 'escuelaCodigo', 'DocenteCodigo' ]
+        fields = ['ADIDcodigo','nrc', 'clave', 'asignatura', 'codigo', 'seccion', 'modalidad', 'campus', 'tipo', 'cupo', 'inscripto', 'horario','dias', 'Aula', 'creditos', 'facultadCodigo', 'escuelaCodigo', 'DocenteCodigo', 'period']

@@ -72,3 +72,22 @@ class asignacionDocenteSerializer(serializers.ModelSerializer):
     class Meta:
         model = asignacionDocente
         fields = ['ADIDcodigo','nrc', 'clave', 'asignatura', 'codigo', 'seccion', 'modalidad', 'campus', 'tipo', 'cupo', 'inscripto', 'horario','dias', 'Aula', 'creditos', 'facultadCodigo', 'escuelaCodigo', 'DocenteCodigo', 'period']
+
+
+class asignacionDocenteSerializer_frontend(serializers.ModelSerializer):
+    facultadCodigo = serializers.CharField(source='facultadCodigo.nombre')
+    escuelaCodigo = serializers.CharField(source='escuelaCodigo.nombre')
+    docente_nombre_completo = serializers.SerializerMethodField()
+
+    class Meta:
+        model = asignacionDocente
+        fields = ['ADIDcodigo', 'nrc', 'clave', 'asignatura', 'codigo', 'seccion', 'modalidad', 
+                  'campus', 'tipo', 'cupo', 'inscripto', 'horario', 'dias', 'Aula', 'creditos', 
+                  'facultadCodigo', 'escuelaCodigo', 'docente_nombre_completo', 'period']
+
+    def get_docente_nombre_completo(self, obj):
+        # Assuming 'DocenteCodigo' is a ForeignKey to Docente model
+        docente = obj.DocenteCodigo  # Get the related Docente instance
+        if docente:
+            return f"{docente.nombre} {docente.apellidos}"  # Combine nombre and apellidos
+        return None  

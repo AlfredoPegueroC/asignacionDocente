@@ -9,7 +9,8 @@ from .serializer import (
   CategoriaDocenteSerializer,
   DocenteSerializer,
   PeriodoAcademicoSerializer,
-  asignacionDocenteSerializer)
+  asignacionDocenteSerializer,
+  asignacionDocenteSerializer_frontend)
 from .models import (
     Universidad, 
     Facultad, 
@@ -103,6 +104,10 @@ def getAllPeriodoAcademico(request):
 @api_view(['GET'])
 def getAllAsignacion(request):
   return getAllHandle(request,asignacionDocente,asignacionDocenteSerializer)
+
+@api_view(['GET'])
+def getAllAsignacion_frontend(request):
+  return getAllHandle(request,asignacionDocente,asignacionDocenteSerializer_frontend)
 #endregion
 
 #region UPDATE
@@ -205,12 +210,19 @@ def update_asignacion(request, pk):
         asignacion = asignacionDocente.objects.get(pk=pk)
     except asignacionDocente.DoesNotExist:
         return JsonResponse({'error': "Asignacion Docente No encontrada"}, status=status.HTTP_404_NOT_FOUND)
+
     if request.method in ['PUT', 'PATCH']:
-        ser = asignacionDocenteSerializer(asignacion, data=request.data, partial=(request.method == 'PATCH'))
+        # Exclude 'docente_nombre_completo' from the request data (since it's read-only)
+        request_data = request.data.copy()
+        request_data.pop('docente_nombre_completo', None)  # Remove 'docente_nombre_completo' if it exists
+
+        ser = asignacionDocenteSerializer(asignacion, data=request_data, partial=(request.method == 'PATCH'))
+
         if ser.is_valid():
             ser.save()
             return JsonResponse(ser.data, status=status.HTTP_200_OK)
         return JsonResponse(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 #endregion
 
@@ -287,6 +299,17 @@ def delete_asignacionDocente(request, pk):
     except asignacionDocente.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
 
+@api_view(['DELETE'])
+def delete_asignacion_by_period(request):
+    period = request.GET.get('period')
+    if not period:
+        return Response({"error": "Missing period"}, status=status.HTTP_400_BAD_REQUEST)
+    deleted_count, _ = asignacionDocente.objects.filter(period=period).delete()
+    
+    if deleted_count == 0:
+        return Response({"error": "No records found"}, status=status.HTTP_404_NOT_FOUND)
+
+    return Response({"message": "Records deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
 
 
 #endregion
@@ -498,40 +521,80 @@ def DocenteExport(request):
 
   return response
 
+# def asignacionDocenteExport(request):
+#     queryset = asignacionDocente.objects.select_related('facultadCodigo', 'escuelaCodigo', 'DocenteCodigo').all()
+#     data = []
+
+#     for asignacion in queryset:
+#       data.append({
+#         'NRC': asignacion.nrc,
+#         'Clave': asignacion.clave,
+#         'Asignatura': asignacion.asignatura,
+#         'Código': asignacion.codigo,
+#         'Profesor': f"{asignacion.DocenteCodigo.nombre} {asignacion.DocenteCodigo.apellidos}" if asignacion.DocenteCodigo else None,
+#         'Sección': asignacion.seccion,
+#         'Modalidad': asignacion.modalidad,
+#         'Campus': asignacion.campus,
+#         'Facultad': asignacion.facultadCodigo.nombre if asignacion.facultadCodigo else None,
+#         'Escuela': asignacion.escuelaCodigo.nombre if asignacion.escuelaCodigo else None,
+#         'Tipo': asignacion.tipo,
+#         'Cupo': asignacion.cupo,
+#         'Inscripto': asignacion.inscripto,
+#         'Horario': asignacion.horario,
+#         'Dias': asignacion.dias,
+#         'Aula': asignacion.Aula,
+#         'Créditos': asignacion.creditos,
+#       })
+
+#     response = HttpResponse(content_type='application/vnd.ms-excel')
+#     response['Content-Disposition'] = 'attachment; filename="Asignacion_data.xlsx"'
+
+#     with panda.ExcelWriter(response, engine='openpyxl') as writer:
+#         panda.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
+
+#     return response
+
+@api_view(["GET"])
 def asignacionDocenteExport(request):
-    queryset = asignacionDocente.objects.select_related('facultadCodigo', 'escuelaCodigo', 'DocenteCodigo').all()
+    # Get the period from request
+    period = request.GET.get("period")
+
+    # Filter by period if provided
+    queryset = asignacionDocente.objects.select_related("facultadCodigo", "escuelaCodigo", "DocenteCodigo")
+    if period:
+        queryset = queryset.filter(period=period)
+
     data = []
 
     for asignacion in queryset:
-      data.append({
-        'NRC': asignacion.nrc,
-        'Clave': asignacion.clave,
-        'Asignatura': asignacion.asignatura,
-        'Código': asignacion.codigo,
-        'Profesor': f"{asignacion.DocenteCodigo.nombre} {asignacion.DocenteCodigo.apellidos}" if asignacion.DocenteCodigo else None,
-        'Sección': asignacion.seccion,
-        'Modalidad': asignacion.modalidad,
-        'Campus': asignacion.campus,
-        'Facultad': asignacion.facultadCodigo.nombre if asignacion.facultadCodigo else None,
-        'Escuela': asignacion.escuelaCodigo.nombre if asignacion.escuelaCodigo else None,
-        'Tipo': asignacion.tipo,
-        'Cupo': asignacion.cupo,
-        'Inscripto': asignacion.inscripto,
-        'Horario': asignacion.horario,
-        'Dias': asignacion.dias,
-        'Aula': asignacion.Aula,
-        'Créditos': asignacion.creditos,
-      })
+        data.append({
+            "NRC": asignacion.nrc,
+            "Clave": asignacion.clave,
+            "Asignatura": asignacion.asignatura,
+            "Código": asignacion.codigo,
+            "Profesor": f"{asignacion.DocenteCodigo.nombre} {asignacion.DocenteCodigo.apellidos}" if asignacion.DocenteCodigo else None,
+            "Sección": asignacion.seccion,
+            "Modalidad": asignacion.modalidad,
+            "Campus": asignacion.campus,
+            "Facultad": asignacion.facultadCodigo.nombre if asignacion.facultadCodigo else None,
+            "Escuela": asignacion.escuelaCodigo.nombre if asignacion.escuelaCodigo else None,
+            "Tipo": asignacion.tipo,
+            "Cupo": asignacion.cupo,
+            "Inscripto": asignacion.inscripto,
+            "Horario": asignacion.horario,
+            "Dias": asignacion.dias,
+            "Aula": asignacion.Aula,
+            "Créditos": asignacion.creditos,
+        })
 
-    response = HttpResponse(content_type='application/vnd.ms-excel')
-    response['Content-Disposition'] = 'attachment; filename="Asignacion_data.xlsx"'
+    # Create Excel response
+    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    response["Content-Disposition"] = f'attachment; filename="Asignacion_{period if period else "all"}.xlsx"'
 
-    with panda.ExcelWriter(response, engine='openpyxl') as writer:
-        panda.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
+    with panda.ExcelWriter(response, engine="openpyxl") as writer:
+        panda.DataFrame(data).to_excel(writer, sheet_name="Sheet1", index=False)
 
     return response
-
-
 #endregion
 
 #region Import
@@ -787,7 +850,24 @@ class ImportAsignacion(APIView):
                     # Fetch Facultad, Escuela, and Docente using their 'nombre'
                     facultad = Facultad.objects.filter(nombre=row['facultadNombre']).first()
                     escuela = Escuela.objects.filter(nombre=row['escuelaNombre']).first()
-                    docente = Docente.objects.filter(nombre=row['docenteNombre']).first()
+
+                    # Split docenteNombre into nombre and apellidos (assuming they are separated by a space)
+                    full_name = row['docenteNombre'].split()
+                    if len(full_name) < 2:
+                        return Response(
+                            {"error": f"Docente name '{row['docenteNombre']}' is invalid. It should contain both 'nombre' and 'apellidos'."},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+
+                    nombre = full_name[0]  # First name
+                    apellidos = " ".join(full_name[1:])  # Last name
+
+                    docente = Docente.objects.filter(nombre=nombre, apellidos=apellidos).first()
+                    if not docente:
+                        return Response(
+                            {"error": f"El docente '{nombre} {apellidos}' No existe."},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
 
                     # Create or get the asignacionDocente record
                     obj, created = asignacionDocente.objects.get_or_create(
@@ -848,5 +928,6 @@ class ImportAsignacion(APIView):
                 {"error": f"An error occurred: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
 
 #endregion

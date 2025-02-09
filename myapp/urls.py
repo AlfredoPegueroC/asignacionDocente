@@ -20,6 +20,7 @@ urlpatterns = [
     path('api/docente', views.getAllDocente),
     path('api/periodoacademico', views.getAllPeriodoAcademico),
     path('api/asignacion', views.getAllAsignacion),
+    path('api/asignacion_frontend', views.getAllAsignacion_frontend),
     # URLS UPDATE
     path('api/universidad/edit/<int:pk>/', views.update_universidad),
     path('api/universidad/edit/<int:pk>/', views.update_universidad),
@@ -39,6 +40,7 @@ urlpatterns = [
     path('api/docente/delete/<int:pk>/', views.delete_docente),
     path('api/periodoacademico/delete/<int:pk>/', views.delete_periodoAcademico),
     path('api/asignacionDocente/delete/<int:pk>/', views.delete_asignacionDocente),
+    path('api/asignacionDocente/delete', views.delete_asignacion_by_period),
     # DETAILS
     path('api/universidad/<int:pk>/', views.details_universidad, name='detalle_universidad'),
     path('api/facultad/<int:pk>/', views.details_facultad, name='detalle_facultad'),

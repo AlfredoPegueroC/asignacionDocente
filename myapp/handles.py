@@ -14,23 +14,29 @@ def createHandle(request, serializers):
 
 
 def getAllHandle(request, modelData, serializer_class):
-    
     try:
         # Fetch all objects
-        queryset = modelData.objects.all() 
+        queryset = modelData.objects.all()
 
         # Search filter (optional)
         search_query = request.query_params.get('search', None)
         if search_query:
-            # Create a dynamic query to search across all fields, but only text fields
             query = Q()
+            # Loop over the fields of the model
             for field in modelData._meta.get_fields():
-                # Check if the field is a text-based field (CharField, TextField, etc.)
-                if hasattr(field, 'get_internal_type') and field.get_internal_type() in ['CharField', 'TextField']:
-                    query |= Q(**{f"{field.name}__icontains": search_query})
+                if hasattr(field, 'get_internal_type'):
+                    field_type = field.get_internal_type()
+                    if field_type in ['CharField', 'TextField']:  # Only consider CharField and TextField
+                        query |= Q(**{f"{field.name}__icontains": search_query})
+                    elif field_type == 'ForeignKey':  # Handle ForeignKey fields
+                        related_model = field.related_model
+                        # Search by related field's text fields (e.g., `nombre` or `apellidos` for `Docente`)
+                        for related_field in related_model._meta.get_fields():
+                            if hasattr(related_field, 'get_internal_type') and related_field.get_internal_type() in ['CharField', 'TextField']:
+                                query |= Q(**{f"{field.name}__{related_field.name}__icontains": search_query})
             queryset = queryset.filter(query)
 
-        # Filter by other query parameters (example: name, state)
+        # Filter by other query parameters (e.g., name, state)
         filters = {}
         for key, value in request.query_params.items():
             if hasattr(modelData, key):  # Ensure the filter key exists in the model
@@ -53,7 +59,7 @@ def getAllHandle(request, modelData, serializer_class):
 
         # Return paginated response
         return paginator.get_paginated_response(serializer.data)
-        
+
     except Exception as e:
         # Handle exceptions (e.g., database errors)
         return Response(

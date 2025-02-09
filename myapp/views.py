@@ -103,11 +103,11 @@ def getAllPeriodoAcademico(request):
 
 @api_view(['GET'])
 def getAllAsignacion(request):
-  return getAllHandle(request,asignacionDocente,asignacionDocenteSerializer)
+  return getAllHandle_asignacion(request,asignacionDocente,asignacionDocenteSerializer)
 
 @api_view(['GET'])
 def getAllAsignacion_frontend(request):
-  return getAllHandle(request,asignacionDocente,asignacionDocenteSerializer_frontend)
+  return getAllHandle_asignacion(request,asignacionDocente,asignacionDocenteSerializer_frontend)
 #endregion
 
 #region UPDATE

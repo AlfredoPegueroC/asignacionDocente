@@ -20,7 +20,7 @@ from .models import (
     Docente, 
     PeriodoAcademico,
     asignacionDocente)
-from .handles import createHandle, getAllHandle, deleteHandler
+from .handles import createHandle, getAllHandle, deleteHandler,getAllHandle_asignacion
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view
 from rest_framework.views import APIView

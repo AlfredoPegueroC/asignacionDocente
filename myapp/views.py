@@ -822,12 +822,17 @@ class ImportAsignacion(APIView):
                     full_name = row['Profesor'].split()
                     if len(full_name) < 2:
                         return Response(
-                            {"error": f"Docente name '{row['Profesor']}' is invalid. It should contain both 'nombre' and 'apellidos'."},
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
+                        {"error": f"Docente name '{row['Profesor']}' is invalid. It should contain both 'nombre' and 'apellidos'."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
 
-                    nombre = full_name[0]  # First name
-                    apellidos = " ".join(full_name[1:])  # Last name
+
+                    if len(full_name) > 2:
+                        nombre = " ".join(full_name[:-2])  # First name(s)
+                        apellidos = " ".join(full_name[-2:])  # Last name(s)
+                    else:
+                        nombre = full_name[0]  # First name
+                        apellidos = full_name[1]  # Last name
 
                     docente = Docente.objects.filter(nombre=nombre, apellidos=apellidos).first()
                     if not docente:
@@ -835,7 +840,6 @@ class ImportAsignacion(APIView):
                             {"error": f"El docente '{nombre} {apellidos}' No existe."},
                             status=status.HTTP_400_BAD_REQUEST
                         )
-
                     # Create or get the asignacionDocente record
                     obj, created = asignacionDocente.objects.get_or_create(
                         nrc=row['NRC'],

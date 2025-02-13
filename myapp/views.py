@@ -538,9 +538,9 @@ def asignacionDocenteExport(request):
             "NRC": asignacion.nrc,
             "Clave": asignacion.clave,
             "Asignatura": asignacion.asignatura,
-            "Código": asignacion.codigo,
+            "Codigo": asignacion.codigo,
             "Profesor": f"{asignacion.DocenteCodigo.nombre} {asignacion.DocenteCodigo.apellidos}" if asignacion.DocenteCodigo else None,
-            "Sección": asignacion.seccion,
+            "Seccion": asignacion.seccion,
             "Modalidad": asignacion.modalidad,
             "Campus": asignacion.campus,
             "Facultad": asignacion.facultadCodigo.nombre if asignacion.facultadCodigo else None,
@@ -551,7 +551,7 @@ def asignacionDocenteExport(request):
             "Horario": asignacion.horario,
             "Dias": asignacion.dias,
             "Aula": asignacion.Aula,
-            "Créditos": asignacion.creditos,
+            "Creditos": asignacion.creditos,
         })
 
     # Create Excel response

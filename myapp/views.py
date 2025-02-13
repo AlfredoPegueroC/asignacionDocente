@@ -861,17 +861,17 @@ class ImportAsignacion(APIView):
                         records_created += 1
                 except Facultad.DoesNotExist:
                     return Response(
-                        {"error": f"Facultad con nombre {row['facultadNombre']} no existe."},
+                        {"error": f"Facultad con nombre {row['Facultad']} no existe."},
                         status=status.HTTP_400_BAD_REQUEST
                     )
                 except Escuela.DoesNotExist:
                     return Response(
-                        {"error": f"Escuela con nombre {row['escuelaNombre']} no existe."},
+                        {"error": f"Escuela con nombre {row['Escuela']} no existe."},
                         status=status.HTTP_400_BAD_REQUEST
                     )
                 except Docente.DoesNotExist:
                     return Response(
-                        {"error": f"Docente con nombre {row['docenteNombre']} no existe."},
+                        {"error": f"Docente con nombre {row['Docente']} no existe."},
                         status=status.HTTP_400_BAD_REQUEST
                     )
                 except KeyError as e:

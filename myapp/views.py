@@ -510,7 +510,7 @@ def DocenteExport(request):
       'Facultad': docente.facultadCodigo.nombre,
       'Escuela': docente.escuelaCodigo.nombre,
       'Tipo de docente': docente.tipoDocenteCodigo.nombre,
-      'categoria docente': docente.categoriaCodigo.nombre,
+      'Categoria docente': docente.categoriaCodigo.nombre,
     })
 
   response = HttpResponse(content_type='application/vnd.ms-excel')
@@ -825,8 +825,6 @@ class ImportAsignacion(APIView):
                         {"error": f"Docente name '{row['Profesor']}' is invalid. It should contain both 'nombre' and 'apellidos'."},
                         status=status.HTTP_400_BAD_REQUEST
                     )
-
-
                     if len(full_name) > 2:
                         nombre = " ".join(full_name[:-2])  # First name(s)
                         apellidos = " ".join(full_name[-2:])  # Last name(s)

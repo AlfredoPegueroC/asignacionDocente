@@ -3,14 +3,18 @@ from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Q
 
-
-
 def createHandle(request, serializers):
-  serializer = serializers(data=request.data)   
-  if serializer.is_valid():
-      serializer.save()
-      return Response(serializer.data, status=status.HTTP_201_CREATED)
-  return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    serializer = serializers(data=request.data)
+    if serializer.is_valid():
+        try:
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except IntegrityError:
+            return Response(
+                {"error": "Este registro ya existe."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 def getAllHandle(request, modelData, serializer_class):
     

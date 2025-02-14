@@ -11,7 +11,8 @@ class Universidad(models.Model):
         max_length=15,
         choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')]
     )
-
+    class Meta:
+        unique_together = ('nombre', 'estado') 
     # def save(self, *args, **kwargs):
     #   if not self.UniversidadCodigo:
     #       # Get the last Universidad object by UniversidadCodigo
@@ -44,6 +45,9 @@ class Facultad(models.Model):
   def __str__(self):
       return self.nombre
 
+  class Meta:
+    unique_together = ('nombre', 'estado', 'UniversidadCodigo')
+
 class Escuela(models.Model):
   escuelaCodigo = models.AutoField(primary_key=True, editable=False)
   nombre = models.CharField(max_length=100, null=False)
@@ -55,6 +59,9 @@ class Escuela(models.Model):
   def __str__(self):
       return self.nombre
   
+  class Meta:
+    unique_together = ('nombre', 'estado', 'UniversidadCodigo', 'facultadCodigo')
+
 
 class TipoDocente(models.Model):
   #CAMPOS
@@ -69,6 +76,9 @@ class TipoDocente(models.Model):
   def __str__(self):
       return self.nombre
 
+  class Meta:
+      unique_together = ('nombre', 'estado', 'UniversidadCodigo')
+
 class CategoriaDocente(models.Model):
   #CAMPOS
   categoriaCodigo = models.AutoField(primary_key=True, editable=False)
@@ -81,18 +91,21 @@ class CategoriaDocente(models.Model):
 
   def __str__(self):
       return self.nombre
-  
+
+  class Meta:
+      unique_together = ('nombre', 'estado', 'UniversidadCodigo')
+
 class Docente(models.Model):
     #CAMPOS
     Docentecodigo = models.AutoField(primary_key=True, editable=False)
-    nombre = models.CharField(max_length=30)
-    apellidos = models.CharField(max_length=30)
+    nombre = models.CharField(max_length=55)
+    apellidos = models.CharField(max_length=55)
     sexo = models.CharField(max_length=1, choices=[('F', 'Femenino'), ('M', 'Masculino')])
-    estado_civil = models.CharField(max_length=1, choices=[('S', 'Soltero'), ('C', 'Casado'), ('U', 'Unión Libre'), ('V', 'Viudo')])
+    estado_civil = models.CharField(max_length=15, choices=[('Soltero', 'Soltero'), ('Casado', 'Casado'), ('Union Libre', 'Unión Libre'), ('Viudo', 'Viudo')])
     fecha_nacimiento = models.DateField(null=True, blank=True)
-    telefono = models.CharField(max_length=15)
+    telefono = models.CharField(max_length=30)
     direccion = models.CharField(max_length=250)
-    estado = models.CharField(max_length=10, choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo'), ('Jubilado', 'Jubilado'), ('Sabático', 'Sabático'), ('Licencia', 'Licencia')])
+    estado = models.CharField(max_length=15, choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo'), ('Jubilado', 'Jubilado'), ('Sabático', 'Sabático'), ('Licencia', 'Licencia')])
 
 
     # FORIGNKEY
@@ -104,6 +117,8 @@ class Docente(models.Model):
 
     def __str__(self):
         return f"{self.nombre} {self.apellidos}"
+    class Meta:
+        unique_together = ('nombre', 'estado','apellidos', 'sexo', 'estado_civil','fecha_nacimiento','telefono','direccion', 'UniversidadCodigo')
 
 class PeriodoAcademico(models.Model):
   periodoAcademicoCodigo = models.AutoField(primary_key=True, editable=False)
@@ -114,8 +129,9 @@ class PeriodoAcademico(models.Model):
 
   def __str__(self):
       return f"{self.nombre} {self.estado}"
+  class Meta:
+    unique_together = ('nombre', 'estado', 'UniversidadCodigo')
   
-
 class asignacionDocente(models.Model):
     ADIDcodigo = models.AutoField(primary_key=True)
     nrc = models.CharField(max_length=40)

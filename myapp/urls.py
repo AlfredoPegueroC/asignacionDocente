@@ -60,10 +60,16 @@ urlpatterns = [
     path('export/escuela', views.EscuelaExport),
     path('export/docente', views.DocenteExport),
     path('export/asignacionDocenteExport', views.asignacionDocenteExport),
+    path('export/categoriaDocente', views.CategoriaDocenteExport),
+    path('export/tipoDocente', views.TipoDocenteExport),
+    path('export/periodoAcademico', views.PeriodoAcademicoExport),
     # import
     path('import/asignacion', views.ImportAsignacion.as_view()),
     path('import/facultad', views.ImportFacultad.as_view()),
     path('import/escuela', views.ImportEscuela.as_view()),
     path('import/docente', views.ImportDocente.as_view()),
+    path('import/universidad', views.ImportUniversidad.as_view()),
+    path('import/categoriaDocente', views.ImportCategoriaDocente.as_view()),
+    path('import/tipoDocente', views.ImportTipoDocente.as_view())
 
 ]

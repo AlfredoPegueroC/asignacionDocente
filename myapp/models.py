@@ -34,7 +34,6 @@ class Universidad(models.Model):
     # def __str__(self):
     #     return self.nombre
 
-  
 
 class Facultad(models.Model):
   facultadCodigo = models.AutoField(primary_key=True, editable=False)

@@ -27,7 +27,6 @@ urlpatterns = [
     path('api/asignacion_frontend', views.getAllAsignacion_frontend),
     # URLS UPDATE
     path('api/universidad/edit/<int:pk>/', views.update_universidad),
-    path('api/universidad/edit/<int:pk>/', views.update_universidad),
     path('api/facultad/edit/<int:pk>/', views.update_facultad),
     path('api/escuela/edit/<int:pk>/', views.update_escuela),
     path('api/tipodocente/edit/<int:pk>/', views.update_tipoDocente),

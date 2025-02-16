@@ -73,3 +73,5 @@ urlpatterns = [
     path('import/tipoDocente', views.ImportTipoDocente.as_view())
 
 ]
+
+urlpatterns += static(setting.STATIC_URL, document_root=setting.STATIC_ROOT)

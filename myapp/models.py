@@ -6,7 +6,7 @@ from django.db import models
 
 class Universidad(models.Model):
     UniversidadCodigo = models.AutoField(primary_key=True,editable=False)
-    nombre = models.CharField(max_length=100, null=False)
+    nombre = models.CharField(max_length=110, null=False)
     estado = models.CharField(
         max_length=15,
         choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')]

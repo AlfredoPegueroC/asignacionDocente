@@ -768,7 +768,7 @@ class ImportDocente(APIView):
 
         try:
             # Read the Excel file
-            df = panda.read_excel(excel_file)
+            df = pd.read_excel(excel_file)
 
             required_columns = [
                 'Nombre', 'Apellidos', 'Sexo', 'Estado Civil', 'Fecha de nacimiento',
@@ -789,22 +789,22 @@ class ImportDocente(APIView):
             with transaction.atomic():  # Start atomic transaction
                 for _, row in df.iterrows():
                     try:
-                        universidad = Universidad.objects.get(nombre=row['Universidad'].strip())
-                        facultad = Facultad.objects.get(nombre=row['Facultad'].strip())
-                        escuela = Escuela.objects.get(nombre=row['Escuela'].strip())
-                        tipoDocente = TipoDocente.objects.get(nombre=row['Tipo de docente'].strip())
-                        categoriaDocente = CategoriaDocente.objects.get(nombre=row['Categoria docente'].strip())
+                        universidad = Universidad.objects.get(nombre=str(row['Universidad']).strip())
+                        facultad = Facultad.objects.get(nombre=str(row['Facultad']).strip())
+                        escuela = Escuela.objects.get(nombre=str(row['Escuela']).strip())
+                        tipoDocente = TipoDocente.objects.get(nombre=str(row['Tipo de docente']).strip())
+                        categoriaDocente = CategoriaDocente.objects.get(nombre=str(row['Categoria docente']).strip())
 
                         # Create Docente instance
                         docente_instance = Docente(
-                            nombre=row['Nombre'].strip(),
-                            apellidos=row['Apellidos'].strip(),
-                            sexo=row['Sexo'].strip(),
-                            estado_civil=row['Estado Civil'].strip(),
-                            fecha_nacimiento=row['Fecha de nacimiento'],
-                            telefono=row['Telefono'].strip(),
-                            direccion=row['Direccion'].strip(),
-                            estado=row['Estado'].strip(),
+                            nombre=str(row['Nombre']).strip(),
+                            apellidos=str(row['Apellidos']).strip(),
+                            sexo=str(row['Sexo']).strip(),
+                            estado_civil=str(row['Estado Civil']).strip(),
+                            fecha_nacimiento=row['Fecha de nacimiento'],  # Assuming this is a valid date format
+                            telefono=str(row['Telefono']).strip(),
+                            direccion=str(row['Direccion']).strip(),
+                            estado=str(row['Estado']).strip(),
                             UniversidadCodigo=universidad,
                             facultadCodigo=facultad,
                             escuelaCodigo=escuela,
@@ -863,7 +863,6 @@ class ImportDocente(APIView):
                 {"error": f"An error occurred: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
 
 class ImportAsignacion(APIView):
     parser_classes = [MultiPartParser, FormParser]
@@ -967,9 +966,6 @@ class ImportAsignacion(APIView):
                 {"error": f"An error occurred: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-
-
-
 
 class ImportUniversidad(APIView):
     parser_classes = [MultiPartParser, FormParser]
@@ -1090,7 +1086,7 @@ class ImportCategoriaDocente(APIView):
 
         try:
             # Read the Excel file
-            df = panda.read_excel(excel_file)
+            df = pd.read_excel(excel_file)
 
             required_columns = ['Nombre', 'Estado', 'Universidad']
             # Check if all required columns are present
@@ -1104,18 +1100,23 @@ class ImportCategoriaDocente(APIView):
             records_to_create = []
             for _, row in df.iterrows():
                 try:
-                    universidad = Universidad.objects.get(nombre=row['Universidad'])
+                    # Ensure values are treated as strings
+                    nombre = str(row.get('Nombre', '')).strip()
+                    estado = str(row.get('Estado', '')).strip()
+                    universidad_nombre = str(row.get('Universidad', '')).strip()
+
+                    universidad = Universidad.objects.get(nombre=universidad_nombre)
 
                     # Prepare the CategoriaDocente object for bulk creation
                     records_to_create.append(CategoriaDocente(
-                        nombre=row['Nombre'],
-                        estado=row['Estado'],
+                        nombre=nombre,
+                        estado=estado,
                         UniversidadCodigo=universidad
                     ))
 
                 except Universidad.DoesNotExist:
                     return Response(
-                        {"error": f"Universidad con nombre {row['Universidad']} no existe."},
+                        {"error": f"Universidad con nombre {universidad_nombre} no existe."},
                         status=status.HTTP_400_BAD_REQUEST
                     )
                 except KeyError as e:
@@ -1143,5 +1144,71 @@ class ImportCategoriaDocente(APIView):
                 {"error": f"An error occurred: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+    parser_classes = [MultiPartParser, FormParser]
 
+    def post(self, request, *args, **kwargs):
+        excel_file = request.FILES.get('excel_file')
+        if not excel_file:
+            return Response({"error": "No excel enviado"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Read the Excel file
+            df = pd.read_excel(excel_file)
+
+            required_columns = ['Nombre', 'Estado', 'Universidad']
+            # Check if all required columns are present
+            missing_columns = [col for col in required_columns if col not in df.columns]
+            if missing_columns:
+                return Response(
+                    {"error": f"Falta la columna: {', '.join(missing_columns)}"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            records_to_create = []
+            for _, row in df.iterrows():
+                try:
+                    # Ensure values are treated as strings
+                    nombre = str(row.get('Nombre', '')).strip()
+                    estado = str(row.get('Estado', '')).strip()
+                    universidad_nombre = str(row.get('Universidad', '')).strip()
+
+                    universidad = Universidad.objects.get(nombre=universidad_nombre)
+
+                    # Prepare the CategoriaDocente object for bulk creation
+                    records_to_create.append(CategoriaDocente(
+                        nombre=nombre,
+                        estado=estado,
+                        UniversidadCodigo=universidad
+                    ))
+
+                except Universidad.DoesNotExist:
+                    return Response(
+                        {"error": f"Universidad con nombre {universidad_nombre} no existe."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                except KeyError as e:
+                    return Response(
+                        {"error": f"Falta los datos de la columna: {str(e)}"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                except Exception as e:
+                    return Response(
+                        {"error": f"Error processing row: {str(e)}"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+            # Use transaction.atomic() to ensure all or nothing
+            with transaction.atomic():
+                CategoriaDocente.objects.bulk_create(records_to_create)
+
+            return Response(
+                {"message": f"Se han importado {len(records_to_create)} registros."},
+                status=status.HTTP_201_CREATED
+            )
+
+        except Exception as e:
+            return Response(
+                {"error": f"An error occurred: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 #endregion

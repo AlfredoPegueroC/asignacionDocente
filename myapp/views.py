@@ -683,69 +683,80 @@ class ImportFacultad(APIView):
         )
 
 class ImportEscuela(APIView):
-  parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [MultiPartParser, FormParser]
 
-  def post(self, request, *args, **kwargs):
-    excel_file = request.FILES.get('excel_file')
-    if not excel_file:
-        return Response({"error": "No excel enviado."}, status=status.HTTP_400_BAD_REQUEST)
+    def post(self, request, *args, **kwargs):
+        excel_file = request.FILES.get('excel_file')
+        if not excel_file:
+            return Response({"error": "No excel enviado."}, status=status.HTTP_400_BAD_REQUEST)
 
-    try:
-        # Read the Excel file
-        df = panda.read_excel(excel_file)
+        try:
+            # Read the Excel file
+            df = panda.read_excel(excel_file)
 
-        required_columns = ['Nombre', 'Estado', 'Universidad', 'Facultad']
-        # Check if all required columns are present
-        missing_columns = [col for col in required_columns if col not in df.columns]
-        if missing_columns:
+            required_columns = ['Nombre', 'Estado', 'Universidad', 'Facultad']
+            # Check if all required columns are present
+            missing_columns = [col for col in required_columns if col not in df.columns]
+            if missing_columns:
+                return Response(
+                    {"error": f"Falta una columna: {', '.join(missing_columns)}"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            records_to_create = []
+            records_created = 0
+            
+            with transaction.atomic():  # Start atomic transaction
+                for _, row in df.iterrows():
+                    try:
+                        universidad = Universidad.objects.get(nombre=row['Universidad'].strip())
+                        facultad = Facultad.objects.get(nombre=row['Facultad'].strip())
+
+                        # Create Escuela instance
+                        escuela_instance = Escuela(
+                            nombre=row['Nombre'].strip(),
+                            estado=row['Estado'].strip(),
+                            UniversidadCodigo=universidad,
+                            facultadCodigo=facultad
+                        )
+                        records_to_create.append(escuela_instance)
+
+                    except Universidad.DoesNotExist:
+                        return Response(
+                            {"error": f"Universidad con nombre '{row['Universidad']}' no existe."},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    except Facultad.DoesNotExist:
+                        return Response(
+                            {"error": f"Facultad con nombre '{row['Facultad']}' no existe."},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    except KeyError as e:
+                        return Response(
+                            {"error": f"Falta los datos columna: {str(e)}"},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    except Exception as e:
+                        return Response(
+                            {"error": f"Error processing row: {str(e)}"},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+
+                # Bulk create the records in the database
+                if records_to_create:
+                    Escuela.objects.bulk_create(records_to_create)
+                    records_created = len(records_to_create)
+
             return Response(
-                {"error": f"Falta una columna: {', '.join(missing_columns)}"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"message": f"Se han importado {records_created} registros."},
+                status=status.HTTP_201_CREATED
+            )
+        except Exception as e:
+            return Response(
+                {"error": f"An error occurred: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-        records_created = 0
-        for _, row in df.iterrows():
-            try:
-              universidad = Universidad.objects.get(nombre=row['Universidad'])
-              facultad = Facultad.objects.get(nombre=row['Facultad'])
-
-              obj, created = Escuela.objects.get_or_create(
-                  nombre=row['Nombre'],
-                  estado=row['Estado'],
-                  UniversidadCodigo=universidad,
-                  facultadCodigo=facultad
-              )
-              if created:
-                records_created += 1
-            except Universidad.DoesNotExist:
-              return Response(
-                  {"error": f"Universidad con nombre {row['UniversidadCodigo']} no existe."},
-                  status=status.HTTP_400_BAD_REQUEST
-              )
-            except Facultad.DoesNotExist:
-              return Response(
-                  {"error": f"Facultad con nombre {row['Facultad']} no existe."},
-                  status=status.HTTP_400_BAD_REQUEST
-              )
-            except KeyError as e:
-              return Response(
-                  {"error": f"falta los datos columna: {str(e)}"},
-                  status=status.HTTP_400_BAD_REQUEST
-              )
-            except Exception as e:
-              return Response(
-                  {"error": f"Error processing row: {str(e)}"},
-                  status=status.HTTP_400_BAD_REQUEST
-              )
-        return Response(
-            {"message": f"se han Importado {records_created} registros."},
-            status=status.HTTP_201_CREATED
-        )
-    except Exception as e:
-        return Response(
-            {"error": f"An error occurred: {str(e)}"},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
 
 class ImportDocente(APIView):
     parser_classes = [MultiPartParser, FormParser]
@@ -768,77 +779,91 @@ class ImportDocente(APIView):
             missing_columns = [col for col in required_columns if col not in df.columns]
             if missing_columns:
                 return Response(
-                    {"error": f"Falta la columna : {', '.join(missing_columns)}"},
+                    {"error": f"Falta la columna: {', '.join(missing_columns)}"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
+            records_to_create = []
             records_created = 0
-            for _, row in df.iterrows():
-                try:
-                    
-                    universidad = Universidad.objects.get(nombre=row['Universidad'])
-                    facultad = Facultad.objects.get(nombre=row['Facultad'])
-                    escuela = Escuela.objects.get(nombre=row['Escuela'])
-                    tipoDocente = TipoDocente.objects.get(nombre=row['Tipo de docente'])
-                    categoriaDocente = CategoriaDocente.objects.get(nombre=row['Categoria docente'])
+            
+            with transaction.atomic():  # Start atomic transaction
+                for _, row in df.iterrows():
+                    try:
+                        universidad = Universidad.objects.get(nombre=row['Universidad'].strip())
+                        facultad = Facultad.objects.get(nombre=row['Facultad'].strip())
+                        escuela = Escuela.objects.get(nombre=row['Escuela'].strip())
+                        tipoDocente = TipoDocente.objects.get(nombre=row['Tipo de docente'].strip())
+                        categoriaDocente = CategoriaDocente.objects.get(nombre=row['Categoria docente'].strip())
 
-                    obj, created = Docente.objects.get_or_create(
-                        nombre=row['Nombre'],
-                        apellidos=row['Apellidos'],
-                        sexo=row['Sexo'],
-                        estado_civil=row['Estado Civil'],
-                        fecha_nacimiento=row['Fecha de nacimiento'],
-                        telefono=row['Telefono'],
-                        direccion=row['Direccion'],
-                        estado=row['Estado'],
-                        UniversidadCodigo=universidad,
-                        facultadCodigo=facultad,
-                        escuelaCodigo=escuela,
-                        tipoDocenteCodigo=tipoDocente,
-                        categoriaCodigo=categoriaDocente
-                    )
-                    if created:
-                        records_created += 1
-                except Universidad.DoesNotExist:
-                    return Response(
-                        {"error": f"Universidad con nombre {row['Universidad']} no existe."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                except Facultad.DoesNotExist:
-                    return Response(
-                        {"error": f"Facultad con nombre {row['Facultad']} no existe."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                except Escuela.DoesNotExist:
-                    return Response(
-                        {"error": f"Escuela con nombre {row['Escuela']} no existe."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                except TipoDocente.DoesNotExist:
-                    return Response(
-                        {"error": f"Tipo de docente con nombre {row['Tipo de docente']} no existe."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                except CategoriaDocente.DoesNotExist:
-                    return Response(
-                        {"error": f"Categoria docente con nombre {row['Categoria docente']} no existe."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                except KeyError as e:
-                    return Response(
-                        {"error": f"falta los datos de la columna: {str(e)}"},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
+                        # Create Docente instance
+                        docente_instance = Docente(
+                            nombre=row['Nombre'].strip(),
+                            apellidos=row['Apellidos'].strip(),
+                            sexo=row['Sexo'].strip(),
+                            estado_civil=row['Estado Civil'].strip(),
+                            fecha_nacimiento=row['Fecha de nacimiento'],
+                            telefono=row['Telefono'].strip(),
+                            direccion=row['Direccion'].strip(),
+                            estado=row['Estado'].strip(),
+                            UniversidadCodigo=universidad,
+                            facultadCodigo=facultad,
+                            escuelaCodigo=escuela,
+                            tipoDocenteCodigo=tipoDocente,
+                            categoriaCodigo=categoriaDocente
+                        )
+                        records_to_create.append(docente_instance)
+
+                    except Universidad.DoesNotExist:
+                        return Response(
+                            {"error": f"Universidad con nombre '{row['Universidad']}' no existe."},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    except Facultad.DoesNotExist:
+                        return Response(
+                            {"error": f"Facultad con nombre '{row['Facultad']}' no existe."},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    except Escuela.DoesNotExist:
+                        return Response(
+                            {"error": f"Escuela con nombre '{row['Escuela']}' no existe."},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    except TipoDocente.DoesNotExist:
+                        return Response(
+                            {"error": f"Tipo de docente con nombre '{row['Tipo de docente']}' no existe."},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    except CategoriaDocente.DoesNotExist:
+                        return Response(
+                            {"error": f"Categoria docente con nombre '{row['Categoria docente']}' no existe."},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    except KeyError as e:
+                        return Response(
+                            {"error": f"Falta los datos de la columna: {str(e)}"},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    except Exception as e:
+                        return Response(
+                            {"error": f"Error processing row: {str(e)}"},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+
+                # Bulk create the records in the database
+                if records_to_create:
+                    Docente.objects.bulk_create(records_to_create)
+                    records_created = len(records_to_create)
+
+            return Response(
+                {"message": f"Se han importado {records_created} registros"},
+                status=status.HTTP_201_CREATED
+            )
         except Exception as e:
             return Response(
-                {"error": f"Error processing row: {str(e)}"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": f"An error occurred: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-        return Response(
-            {"message": f"se han importados {records_created} registros"},
-            status=status.HTTP_201_CREATED
-        )
 
 class ImportAsignacion(APIView):
     parser_classes = [MultiPartParser, FormParser]
@@ -967,31 +992,20 @@ class ImportUniversidad(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            records_created = 0
+            records_to_create = []
             for _, row in df.iterrows():
-
                 nombre = str(row.get('Nombre', '')).strip()
                 estado = str(row.get('Estado', '')).strip()
-                try:
-                    obj, created = Universidad.objects.get_or_create(
-                        nombre=nombre,
-                        estado=estado
-                    )
-                    if created:
-                        records_created += 1
-                except KeyError as e:
-                    return Response(
-                        {"error": f"Falta los datos de la columna: {str(e)}"},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                except Exception as e:
-                    return Response(
-                        {"error": f"Error processing row: {str(e)}"},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
+
+                # Create a new Universidad object
+                records_to_create.append(Universidad(nombre=nombre, estado=estado))
+
+            # Use transaction.atomic() to ensure all or nothing
+            with transaction.atomic():
+                Universidad.objects.bulk_create(records_to_create)
 
             return Response(
-                {"message": f"se han importados {records_created} registros"},
+                {"message": f"Se han importado {len(records_to_create)} registros."},
                 status=status.HTTP_201_CREATED
             )
 
@@ -1022,18 +1036,18 @@ class ImportTipoDocente(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            records_created = 0
+            records_to_create = []
             for _, row in df.iterrows():
                 try:
                     universidad = Universidad.objects.get(nombre=row['Universidad'])
 
-                    obj, created = TipoDocente.objects.get_or_create(
+                    # Prepare the TipoDocente object for bulk creation
+                    records_to_create.append(TipoDocente(
                         nombre=row['Nombre'],
                         estado=row['Estado'],
                         UniversidadCodigo=universidad
-                    )
-                    if created:
-                        records_created += 1
+                    ))
+
                 except Universidad.DoesNotExist:
                     return Response(
                         {"error": f"Universidad con nombre {row['Universidad']} no existe."},
@@ -1050,8 +1064,12 @@ class ImportTipoDocente(APIView):
                         status=status.HTTP_400_BAD_REQUEST
                     )
 
+            # Use transaction.atomic() to ensure all or nothing
+            with transaction.atomic():
+                TipoDocente.objects.bulk_create(records_to_create)
+
             return Response(
-                {"message": f"se han importados {records_created} registros"},
+                {"message": f"Se han importado {len(records_to_create)} registros."},
                 status=status.HTTP_201_CREATED
             )
 
@@ -1060,6 +1078,7 @@ class ImportTipoDocente(APIView):
                 {"error": f"An error occurred: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
 
 class ImportCategoriaDocente(APIView):
     parser_classes = [MultiPartParser, FormParser]
@@ -1082,18 +1101,18 @@ class ImportCategoriaDocente(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            records_created = 0
+            records_to_create = []
             for _, row in df.iterrows():
                 try:
                     universidad = Universidad.objects.get(nombre=row['Universidad'])
 
-                    obj, created = CategoriaDocente.objects.get_or_create(
+                    # Prepare the CategoriaDocente object for bulk creation
+                    records_to_create.append(CategoriaDocente(
                         nombre=row['Nombre'],
                         estado=row['Estado'],
                         UniversidadCodigo=universidad
-                    )
-                    if created:
-                        records_created += 1
+                    ))
+
                 except Universidad.DoesNotExist:
                     return Response(
                         {"error": f"Universidad con nombre {row['Universidad']} no existe."},
@@ -1110,8 +1129,12 @@ class ImportCategoriaDocente(APIView):
                         status=status.HTTP_400_BAD_REQUEST
                     )
 
+            # Use transaction.atomic() to ensure all or nothing
+            with transaction.atomic():
+                CategoriaDocente.objects.bulk_create(records_to_create)
+
             return Response(
-                {"message": f"se han importados {records_created} registros"},
+                {"message": f"Se han importado {len(records_to_create)} registros."},
                 status=status.HTTP_201_CREATED
             )
 
@@ -1120,6 +1143,5 @@ class ImportCategoriaDocente(APIView):
                 {"error": f"An error occurred: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
 
 #endregion

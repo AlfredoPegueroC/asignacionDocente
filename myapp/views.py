@@ -634,7 +634,7 @@ class ImportFacultad(APIView):
 
         try:
             # Read the Excel file
-            df = pd.read_excel(excel_file)
+            df = panda.read_excel(excel_file)
 
             required_columns = ['Nombre', 'Estado', 'Universidad']
             missing_columns = [col for col in required_columns if col not in df.columns]

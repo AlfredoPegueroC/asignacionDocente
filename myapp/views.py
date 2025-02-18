@@ -30,6 +30,7 @@ from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
+from django.db import transaction
 from rest_framework_simplejwt.tokens import RefreshToken,TokenError
 import pandas as panda
 
@@ -843,25 +844,23 @@ class ImportAsignacion(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request, *args, **kwargs):
-        period = request.data.get('period')  # Retrieve the period
+        period = request.data.get("period")
         if not period:
             return Response({"error": "Periodo es requerido"}, status=status.HTTP_400_BAD_REQUEST)
 
-        excel_file = request.FILES.get('excel_file')
+        excel_file = request.FILES.get("excel_file")
         if not excel_file:
             return Response({"error": "No excel enviado."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            # Read the Excel file
             df = panda.read_excel(excel_file)
 
             required_columns = [
-                'NRC', 'Clave', 'Asignatura', 'Codigo', 'Profesor', 'Seccion', 'Modalidad',
-                'Campus', 'Facultad' , 'Escuela', 'Tipo', 'Cupo', 'Inscripto', 'Horario', 'Dias',
-                'Aula', 'Creditos', 
+                "NRC", "Clave", "Asignatura", "Codigo", "Profesor", "Seccion", "Modalidad",
+                "Campus", "Facultad", "Escuela", "Tipo", "Cupo", "Inscripto", "Horario", "Dias",
+                "Aula", "Creditos",
             ]
 
-            # Check if all required columns are present
             missing_columns = [col for col in required_columns if col not in df.columns]
             if missing_columns:
                 return Response(
@@ -869,92 +868,83 @@ class ImportAsignacion(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            records_created = 0
+            # Fetch all Facultad, Escuela, and Docente objects beforehand
+            facultades = {f.nombre: f for f in Facultad.objects.all()}
+            escuelas = {e.nombre: e for e in Escuela.objects.all()}
+            docentes = {f"{d.nombre} {d.apellidos}": d for d in Docente.objects.all()}
+
+            records_to_create = []
             for _, row in df.iterrows():
                 try:
-                    # Fetch Facultad, Escuela, and Docente using their 'nombre'
-                    facultad = Facultad.objects.get(nombre=row['Facultad'])
-                    escuela = Escuela.objects.get(nombre=row['Escuela'])
+                    # Retrieve Facultad & Escuela
+                    facultad = facultades.get(row["Facultad"].strip())
+                    escuela = escuelas.get(row["Escuela"].strip())
 
-                    # Split docenteNombre into nombre and apellidos (assuming they are separated by a space)
-                    full_name = row['Profesor'].split()
+                    # Process docente name
+                    full_name = row["Profesor"].strip().split()
                     if len(full_name) < 2:
                         return Response(
-                        {"error": f"Docente name '{row['Profesor']}' is invalid. It should contain both 'nombre' and 'apellidos'."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                    if len(full_name) > 2:
-                        nombre = " ".join(full_name[:-2])  # First name(s)
-                        apellidos = " ".join(full_name[-2:])  # Last name(s)
-                    else:
-                        nombre = full_name[0]  # First name
-                        apellidos = full_name[1]  # Last name
+                            {"error": f"Docente name '{row['Profesor']}' is invalid."},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
 
-                    docente = Docente.objects.filter(nombre=nombre, apellidos=apellidos).first()
+                    nombre = " ".join(full_name[:-1])  # Everything except last word
+                    apellidos = full_name[-1]  # Last word
+
+                    docente = docentes.get(f"{nombre} {apellidos}")
                     if not docente:
                         return Response(
                             {"error": f"El docente '{nombre} {apellidos}' No existe."},
-                            status=status.HTTP_400_BAD_REQUEST
+                            status=status.HTTP_400_BAD_REQUEST,
                         )
-                    # Create or get the asignacionDocente record
-                    obj, created = asignacionDocente.objects.get_or_create(
-                        nrc=row['NRC'],
-                        clave=row['Clave'],
-                        asignatura=row['Asignatura'],
-                        codigo=row['Codigo'],
-                        DocenteCodigo=docente,
-                        seccion=row['Seccion'],
-                        modalidad=row['Modalidad'],
-                        campus=row['Campus'],
-                        facultadCodigo=facultad,
-                        escuelaCodigo=escuela, 
-                        tipo=row['Tipo'],
-                        cupo=row['Cupo'],
-                        inscripto=row['Inscripto'],
-                        horario=row['Horario'],
-                        dias=row['Dias'],
-                        Aula=row['Aula'],
-                        creditos=row['Creditos'],
-                        period=period
-                    )
-                    if created:
-                        records_created += 1
-                except Facultad.DoesNotExist:
-                    return Response(
-                        {"error": f"Facultad con nombre {row['Facultad']} no existe."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                except Escuela.DoesNotExist:
-                    return Response(
-                        {"error": f"Escuela con nombre {row['Escuela']} no existe."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                except Docente.DoesNotExist:
-                    return Response(
-                        {"error": f"Docente con nombre {row['Docente']} no existe."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                except KeyError as e:
-                    return Response(
-                        {"error": f"Falto los Datos: {str(e)}"},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                except Exception as e:
-                    return Response(
-                        {"error": f"Error processing row: {str(e)}"},
-                        status=status.HTTP_400_BAD_REQUEST
+
+                    # Prepare the record for bulk creation
+                    records_to_create.append(
+                        asignacionDocente(
+                            nrc=row["NRC"],
+                            clave=row["Clave"],
+                            asignatura=row["Asignatura"],
+                            codigo=row["Codigo"],
+                            docenteCodigo=docente,
+                            seccion=row["Seccion"],
+                            modalidad=row["Modalidad"],
+                            campus=row["Campus"],
+                            facultadCodigo=facultad,
+                            escuelaCodigo=escuela,
+                            tipo=row["Tipo"],
+                            cupo=row["Cupo"],
+                            inscripto=row["Inscripto"],
+                            horario=row["Horario"],
+                            dias=row["Dias"],
+                            aula=row["Aula"],
+                            creditos=row["Creditos"],
+                            period=period,
+                        )
                     )
 
+                except KeyError as e:
+                    return Response(
+                        {"error": f"Falta el dato: {str(e)}"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+            # Perform a bulk create of all records
+            with transaction.atomic():
+                asignacionDocente.objects.bulk_create(records_to_create)
+
             return Response(
-                {"message":  f"se han importados {records_created} registros"},
-                status=status.HTTP_201_CREATED
+                {"message": f"Se han importado {len(records_to_create)} registros"},
+                status=status.HTTP_201_CREATED,
             )
 
         except Exception as e:
             return Response(
                 {"error": f"An error occurred: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+
 
 class ImportUniversidad(APIView):
     parser_classes = [MultiPartParser, FormParser]

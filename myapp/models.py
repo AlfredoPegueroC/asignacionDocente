@@ -117,7 +117,10 @@ class Docente(models.Model):
     def __str__(self):
         return f"{self.nombre} {self.apellidos}"
     class Meta:
-        unique_together = ('nombre', 'estado','apellidos', 'sexo', 'estado_civil','fecha_nacimiento','telefono','direccion', 'UniversidadCodigo')
+        unique_together = ('nombre','apellidos','telefono', 'UniversidadCodigo')
+        indexes = [
+            models.Index(fields=['nombre', 'apellidos', 'telefono', 'UniversidadCodigo']),
+        ]
 
 class PeriodoAcademico(models.Model):
   periodoAcademicoCodigo = models.AutoField(primary_key=True, editable=False)
@@ -147,7 +150,7 @@ class asignacionDocente(models.Model):
     dias = models.CharField(max_length=40)
     Aula = models.CharField(max_length=40)
     creditos = models.CharField(max_length=40)
-    period = models.CharField(max_length=7, default='2025-20')  # Add the period field (e.g., '2025-20')
+    period = models.CharField(max_length=7, default='2025-20')
 
     facultadCodigo = models.ForeignKey(Facultad, on_delete=models.CASCADE)
     escuelaCodigo = models.ForeignKey(Escuela, on_delete=models.CASCADE)

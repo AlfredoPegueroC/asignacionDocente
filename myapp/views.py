@@ -710,7 +710,6 @@ class ImportEscuela(APIView):
             df = panda.read_excel(excel_file)
 
             required_columns = ['Nombre', 'Estado', 'Universidad', 'Facultad']
-            # Check if all required columns are present
             missing_columns = [col for col in required_columns if col not in df.columns]
             if missing_columns:
                 return Response(
@@ -724,18 +723,28 @@ class ImportEscuela(APIView):
             with transaction.atomic():
                 for _, row in df.iterrows():
                     try:
-                        # Retrieve Universidad instance
                         universidad = Universidad.objects.get(nombre=row['Universidad'].strip())
-                        
-                        # Retrieve Facultad instance using filter
+
+                        # Handle Facultad retrieval
                         facultades = Facultad.objects.filter(nombre=row['Facultad'].strip(), UniversidadCodigo=universidad)
                         if facultades.exists():
-                            facultad = facultades.first()  # Use the first match
+                            facultad = facultades.first()  # Use the first matching Facultad
                         else:
                             return Response(
-                                {"error": f"Facultad con nombre '{row['Facultad']}' no existe para la universidad '{row['Universidad']}'."},
+                                {"error": f"Facultad con nombre '{row['Facultad']}' no existe."},
                                 status=status.HTTP_400_BAD_REQUEST
                             )
+
+                        # Check for existing Escuela instance
+                        existing_escuela = Escuela.objects.filter(
+                            nombre=row['Nombre'].strip(),
+                            estado=row['Estado'].strip(),
+                            UniversidadCodigo=universidad,
+                            facultadCodigo=facultad
+                        ).first()
+
+                        if existing_escuela:
+                            continue  # Skip if a duplicate exists
 
                         # Create Escuela instance
                         escuela_instance = Escuela(
@@ -776,8 +785,6 @@ class ImportEscuela(APIView):
                 {"error": f"An error occurred: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
-
 
 class ImportDocente(APIView):
     parser_classes = [MultiPartParser, FormParser]

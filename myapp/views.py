@@ -724,8 +724,18 @@ class ImportEscuela(APIView):
             with transaction.atomic():
                 for _, row in df.iterrows():
                     try:
+                        # Retrieve Universidad instance
                         universidad = Universidad.objects.get(nombre=row['Universidad'].strip())
-                        facultad = Facultad.objects.get(nombre=row['Facultad'].strip())
+                        
+                        # Retrieve Facultad instance using filter
+                        facultades = Facultad.objects.filter(nombre=row['Facultad'].strip(), UniversidadCodigo=universidad)
+                        if facultades.exists():
+                            facultad = facultades.first()  # Use the first match
+                        else:
+                            return Response(
+                                {"error": f"Facultad con nombre '{row['Facultad']}' no existe para la universidad '{row['Universidad']}'."},
+                                status=status.HTTP_400_BAD_REQUEST
+                            )
 
                         # Create Escuela instance
                         escuela_instance = Escuela(
@@ -739,11 +749,6 @@ class ImportEscuela(APIView):
                     except Universidad.DoesNotExist:
                         return Response(
                             {"error": f"Universidad con nombre '{row['Universidad']}' no existe."},
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
-                    except Facultad.DoesNotExist:
-                        return Response(
-                            {"error": f"Facultad con nombre '{row['Facultad']}' no existe."},
                             status=status.HTTP_400_BAD_REQUEST
                         )
                     except KeyError as e:
@@ -771,6 +776,7 @@ class ImportEscuela(APIView):
                 {"error": f"An error occurred: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
 
 
 class ImportDocente(APIView):

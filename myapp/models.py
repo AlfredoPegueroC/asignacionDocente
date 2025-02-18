@@ -45,7 +45,7 @@ class Facultad(models.Model):
       return self.nombre
 
   class Meta:
-    unique_together = ('nombre', 'estado', 'UniversidadCodigo')
+    unique_together = ('nombre', 'UniversidadCodigo')
 
 class Escuela(models.Model):
   escuelaCodigo = models.AutoField(primary_key=True, editable=False)
@@ -59,7 +59,7 @@ class Escuela(models.Model):
       return self.nombre
   
   class Meta:
-    unique_together = ('nombre', 'estado', 'UniversidadCodigo', 'facultadCodigo')
+    unique_together = ('nombre','UniversidadCodigo', 'facultadCodigo')
 
 
 class TipoDocente(models.Model):

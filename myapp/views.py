@@ -637,7 +637,6 @@ class ImportFacultad(APIView):
             df = pd.read_excel(excel_file)
 
             required_columns = ['Nombre', 'Estado', 'Universidad']
-            # Check if all required columns are present
             missing_columns = [col for col in required_columns if col not in df.columns]
             if missing_columns:
                 return Response(
@@ -645,13 +644,24 @@ class ImportFacultad(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            records_to_create = []  # List to hold Facultad instances
+            records_to_create = []
             records_created = 0
 
-            with transaction.atomic():  # Start atomic transaction
+            with transaction.atomic():
                 for _, row in df.iterrows():
                     try:
-                        universidad = Universidad.objects.get(nombre=row['Universidad'])
+                        universidad = Universidad.objects.filter(nombre=row['Universidad']).first()
+                        if universidad is None:
+                            return Response(
+                                {"error": f"Universidad con nombre '{row['Universidad']}' no existe."},
+                                status=status.HTTP_400_BAD_REQUEST
+                            )
+
+                        # Ensure that we filter by both name and university
+                        facultad = Facultad.objects.filter(nombre=row['Nombre'], UniversidadCodigo=universidad).first()
+                        if facultad:
+                            # Facultad already exists
+                            continue
 
                         # Create Facultad instance
                         facultad_instance = Facultad(
@@ -661,11 +671,6 @@ class ImportFacultad(APIView):
                         )
                         records_to_create.append(facultad_instance)
 
-                    except Universidad.DoesNotExist:
-                        return Response(
-                            {"error": f"Universidad con nombre '{row['Universidad']}' no existe."},
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
                     except KeyError as e:
                         return Response(
                             {"error": f"Falta los datos de la columna: {str(e)}"},
@@ -677,7 +682,6 @@ class ImportFacultad(APIView):
                             status=status.HTTP_400_BAD_REQUEST
                         )
 
-                # Bulk create the records in the database
                 if records_to_create:
                     Facultad.objects.bulk_create(records_to_create)
                     records_created = len(records_to_create)
@@ -717,7 +721,7 @@ class ImportEscuela(APIView):
             records_to_create = []
             records_created = 0
             
-            with transaction.atomic():  # Start atomic transaction
+            with transaction.atomic():
                 for _, row in df.iterrows():
                     try:
                         universidad = Universidad.objects.get(nombre=row['Universidad'].strip())

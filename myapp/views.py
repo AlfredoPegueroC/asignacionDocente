@@ -905,7 +905,7 @@ class ImportAsignacion(APIView):
                             clave=row["Clave"],
                             asignatura=row["Asignatura"],
                             codigo=row["Codigo"],
-                            docenteCodigo=docente,
+                            DocenteCodigo=docente,
                             seccion=row["Seccion"],
                             modalidad=row["Modalidad"],
                             campus=row["Campus"],
@@ -916,7 +916,7 @@ class ImportAsignacion(APIView):
                             inscripto=row["Inscripto"],
                             horario=row["Horario"],
                             dias=row["Dias"],
-                            aula=row["Aula"],
+                            Aula=row["Aula"],
                             creditos=row["Creditos"],
                             period=period,
                         )

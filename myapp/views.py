@@ -32,7 +32,7 @@ from rest_framework.response import Response
 from django.contrib.auth import authenticate
 from django.db import transaction
 from rest_framework_simplejwt.tokens import RefreshToken,TokenError
-import pandas as panda
+import pandas as pd
 
 
 # Create your views here.
@@ -447,9 +447,9 @@ def UniversidadExport(request):
   response = HttpResponse(content_type='application/vnd.ms-excel')
   response['Content-Disposition'] = 'attachment; filename="universidad_data.xlsx"'
 
-  # pandas is a data analysis library for python
-  with panda.ExcelWriter(response, engine='openpyxl') as writer:
-        panda.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
+  # pds is a data analysis library for python
+  with pd.ExcelWriter(response, engine='openpyxl') as writer:
+        pd.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
 
   return response
 
@@ -468,8 +468,8 @@ def FacultadExport(request):
   response = HttpResponse(content_type='application/vnd.ms-excel')
   response['Content-Disposition'] = 'attachment; filename="facultad_data.xlsx"'
 
-  with panda.ExcelWriter(response, engine='openpyxl') as writer:
-    panda.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
+  with pd.ExcelWriter(response, engine='openpyxl') as writer:
+    pd.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
 
   return response
 
@@ -488,8 +488,8 @@ def EscuelaExport(request):
   response = HttpResponse(content_type='application/vnd.ms-excel')
   response['Content-Disposition'] = 'attachment; filename="escuela_data.xlsx"'
 
-  with panda.ExcelWriter(response, engine='openpyxl') as writer:
-    panda.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
+  with pd.ExcelWriter(response, engine='openpyxl') as writer:
+    pd.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
 
   return response
 
@@ -517,8 +517,8 @@ def DocenteExport(request):
   response = HttpResponse(content_type='application/vnd.ms-excel')
   response['Content-Disposition'] = 'attachment; filename="Docente_data.xlsx"'
 
-  with panda.ExcelWriter(response, engine='openpyxl') as writer:
-    panda.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
+  with pd.ExcelWriter(response, engine='openpyxl') as writer:
+    pd.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
 
   return response
 
@@ -536,8 +536,8 @@ def CategoriaDocenteExport(request):
   response = HttpResponse(content_type='application/vnd.ms-excel')
   response['Content-Disposition'] = 'attachment; filename="CategoriaDocente_data.xlsx"'
 
-  with panda.ExcelWriter(response, engine='openpyxl') as writer:
-    panda.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
+  with pd.ExcelWriter(response, engine='openpyxl') as writer:
+    pd.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
 
   return response
 
@@ -555,8 +555,8 @@ def TipoDocenteExport(request):
     response = HttpResponse(content_type='application/vnd.ms-excel')
     response['Content-Disposition'] = 'attachment; filename="TipoDocente_data.xlsx"'
     
-    with panda.ExcelWriter(response, engine='openpyxl') as writer:
-        panda.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
+    with pd.ExcelWriter(response, engine='openpyxl') as writer:
+        pd.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
     
     return response
 
@@ -573,8 +573,8 @@ def PeriodoAcademicoExport(request):
     response = HttpResponse(content_type='application/vnd.ms-excel')
     response['Content-Disposition'] = 'attachment; filename="PeriodoAcademico_data.xlsx"'
     
-    with panda.ExcelWriter(response, engine='openpyxl') as writer:
-        panda.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
+    with pd.ExcelWriter(response, engine='openpyxl') as writer:
+        pd.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
     return response
 
 
@@ -617,8 +617,8 @@ def asignacionDocenteExport(request):
     response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     response["Content-Disposition"] = f'attachment; filename="Asignacion_{period if period else "all"}.xlsx"'
 
-    with panda.ExcelWriter(response, engine="openpyxl") as writer:
-        panda.DataFrame(data).to_excel(writer, sheet_name="Sheet1", index=False)
+    with pd.ExcelWriter(response, engine="openpyxl") as writer:
+        pd.DataFrame(data).to_excel(writer, sheet_name="Sheet1", index=False)
 
     return response
 #endregion
@@ -634,7 +634,7 @@ class ImportFacultad(APIView):
 
         try:
             # Read the Excel file
-            df = panda.read_excel(excel_file)
+            df = pd.read_excel(excel_file)
 
             required_columns = ['Nombre', 'Estado', 'Universidad']
             missing_columns = [col for col in required_columns if col not in df.columns]
@@ -707,7 +707,7 @@ class ImportEscuela(APIView):
 
         try:
             # Read the Excel file
-            df = panda.read_excel(excel_file)
+            df = pd.read_excel(excel_file)
 
             required_columns = ['Nombre', 'Estado', 'Universidad', 'Facultad']
             missing_columns = [col for col in required_columns if col not in df.columns]
@@ -786,17 +786,26 @@ class ImportEscuela(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+from django.db import transaction
+from django.db.models import Q
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.views import APIView
+import pandas as pd  # Fixed: use 'pd' instead of 'pd'
+from myapp.models import Universidad, Facultad, Escuela, TipoDocente, CategoriaDocente, Docente
+
 class ImportDocente(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request, *args, **kwargs):
         excel_file = request.FILES.get('excel_file')
         if not excel_file:
-            return Response({"error": "No excel enviado"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "No se envió un archivo Excel"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             # Read the Excel file
-            df = panda.read_excel(excel_file)
+            df = pd.read_excel(excel_file)  # Fixed: 'pd' → 'pd'
 
             required_columns = [
                 'Nombre', 'Apellidos', 'Sexo', 'Estado Civil', 'Fecha de nacimiento',
@@ -807,90 +816,88 @@ class ImportDocente(APIView):
             missing_columns = [col for col in required_columns if col not in df.columns]
             if missing_columns:
                 return Response(
-                    {"error": f"Falta la columna: {', '.join(missing_columns)}"},
+                    {"error": f"Faltan las columnas: {', '.join(missing_columns)}"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            records_to_create = []
-            records_created = 0
-            
-            with transaction.atomic():  # Start atomic transaction
+            with transaction.atomic():  # Atomic transaction for batch operations
+                # Get all related objects in a single query to avoid repetitive queries
+                universidades = {u.nombre.strip(): u for u in Universidad.objects.all()}
+                facultades = {f.nombre.strip(): f for f in Facultad.objects.all()}
+                escuelas = {e.nombre.strip(): e for e in Escuela.objects.all()}
+                tipos_docente = {t.nombre.strip(): t for t in TipoDocente.objects.all()}
+                categorias_docente = {c.nombre.strip(): c for c in CategoriaDocente.objects.all()}
+
+                records_to_create = []
+                records_created = 0
+
                 for _, row in df.iterrows():
                     try:
-                        universidad = Universidad.objects.get(nombre=str(row['Universidad']).strip())
-                        facultad = Facultad.objects.get(nombre=str(row['Facultad']).strip())
-                        escuela = Escuela.objects.get(nombre=str(row['Escuela']).strip())
-                        tipoDocente = TipoDocente.objects.get(nombre=str(row['Tipo de docente']).strip())
-                        categoriaDocente = CategoriaDocente.objects.get(nombre=str(row['Categoria docente']).strip())
+                        universidad = universidades.get(str(row['Universidad']).strip())
+                        facultad = facultades.get(str(row['Facultad']).strip())
+                        escuela = escuelas.get(str(row['Escuela']).strip())
+                        tipo_docente = tipos_docente.get(str(row['Tipo de docente']).strip())
+                        categoria_docente = categorias_docente.get(str(row['Categoria docente']).strip())
 
-                        # Create Docente instance
+                        # Validate existence of foreign keys
+                        if not universidad:
+                            return Response({"error": f"Universidad '{row['Universidad']}' no existe."}, status=status.HTTP_400_BAD_REQUEST)
+                        if not facultad:
+                            return Response({"error": f"Facultad '{row['Facultad']}' no existe."}, status=status.HTTP_400_BAD_REQUEST)
+                        if not escuela:
+                            return Response({"error": f"Escuela '{row['Escuela']}' no existe."}, status=status.HTTP_400_BAD_REQUEST)
+                        if not tipo_docente:
+                            return Response({"error": f"Tipo de docente '{row['Tipo de docente']}' no existe."}, status=status.HTTP_400_BAD_REQUEST)
+                        if not categoria_docente:
+                            return Response({"error": f"Categoría docente '{row['Categoria docente']}' no existe."}, status=status.HTTP_400_BAD_REQUEST)
+
+                        # Check for duplicates before inserting
+                        if Docente.objects.filter(
+                            nombre=str(row['Nombre']).strip(),
+                            apellidos=str(row['Apellidos']).strip(),
+                            sexo=str(row['Sexo']).strip(),
+                            estado_civil=str(row['Estado Civil']).strip(),
+                            fecha_nacimiento=row['Fecha de nacimiento'],
+                            telefono=str(row['Telefono']).strip(),
+                            direccion=str(row['Direccion']).strip(),
+                            estado=str(row['Estado']).strip(),
+                            UniversidadCodigo=universidad
+                        ).exists():
+                            continue  # Skip duplicate entry
+
+                        # Create new Docente instance
                         docente_instance = Docente(
                             nombre=str(row['Nombre']).strip(),
                             apellidos=str(row['Apellidos']).strip(),
                             sexo=str(row['Sexo']).strip(),
                             estado_civil=str(row['Estado Civil']).strip(),
-                            fecha_nacimiento=row['Fecha de nacimiento'],  # Assuming this is a valid date format
+                            fecha_nacimiento=row['Fecha de nacimiento'],
                             telefono=str(row['Telefono']).strip(),
                             direccion=str(row['Direccion']).strip(),
                             estado=str(row['Estado']).strip(),
                             UniversidadCodigo=universidad,
                             facultadCodigo=facultad,
                             escuelaCodigo=escuela,
-                            tipoDocenteCodigo=tipoDocente,
-                            categoriaCodigo=categoriaDocente
+                            tipoDocenteCodigo=tipo_docente,
+                            categoriaCodigo=categoria_docente
                         )
                         records_to_create.append(docente_instance)
 
-                    except Universidad.DoesNotExist:
-                        return Response(
-                            {"error": f"Universidad con nombre '{row['Universidad']}' no existe."},
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
-                    except Facultad.DoesNotExist:
-                        return Response(
-                            {"error": f"Facultad con nombre '{row['Facultad']}' no existe."},
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
-                    except Escuela.DoesNotExist:
-                        return Response(
-                            {"error": f"Escuela con nombre '{row['Escuela']}' no existe."},
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
-                    except TipoDocente.DoesNotExist:
-                        return Response(
-                            {"error": f"Tipo de docente con nombre '{row['Tipo de docente']}' no existe."},
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
-                    except CategoriaDocente.DoesNotExist:
-                        return Response(
-                            {"error": f"Categoria docente con nombre '{row['Categoria docente']}' no existe."},
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
                     except KeyError as e:
-                        return Response(
-                            {"error": f"Falta los datos de la columna: {str(e)}"},
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
+                        return Response({"error": f"Faltan datos en la columna: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
                     except Exception as e:
-                        return Response(
-                            {"error": f"Error processing row: {str(e)}"},
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
+                        return Response({"error": f"Error en la fila {row['Nombre']}: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
 
-                # Bulk create the records in the database
+                # Bulk insert for better performance
                 if records_to_create:
                     Docente.objects.bulk_create(records_to_create)
                     records_created = len(records_to_create)
 
-            return Response(
-                {"message": f"Se han importado {records_created} registros"},
-                status=status.HTTP_201_CREATED
-            )
+            return Response({"message": f"Se han importado {records_created} registros"}, status=status.HTTP_201_CREATED)
+
         except Exception as e:
-            return Response(
-                {"error": f"An error occurred: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response({"error": f"Ocurrió un error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class ImportAsignacion(APIView):
     parser_classes = [MultiPartParser, FormParser]
@@ -905,7 +912,7 @@ class ImportAsignacion(APIView):
             return Response({"error": "No excel enviado."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            df = panda.read_excel(excel_file)
+            df = pd.read_excel(excel_file)
 
             required_columns = [
                 "NRC", "Clave", "Asignatura", "Codigo", "Profesor", "Seccion", "Modalidad",
@@ -1005,7 +1012,7 @@ class ImportUniversidad(APIView):
 
         try:
             # Read the Excel file
-            df = panda.read_excel(excel_file)
+            df = pd.read_excel(excel_file)
 
             required_columns = ['Nombre', 'Estado']
             # Check if all required columns are present
@@ -1049,7 +1056,7 @@ class ImportTipoDocente(APIView):
 
         try:
             # Read the Excel file
-            df = panda.read_excel(excel_file)
+            df = pd.read_excel(excel_file)
 
             required_columns = ['Nombre', 'Estado', 'Universidad']
             # Check if all required columns are present
@@ -1114,7 +1121,7 @@ class ImportCategoriaDocente(APIView):
 
         try:
             # Read the Excel file
-            df = panda.read_excel(excel_file)
+            df = pd.read_excel(excel_file)
 
             required_columns = ['Nombre', 'Estado', 'Universidad']
             # Check if all required columns are present
@@ -1181,7 +1188,7 @@ class ImportCategoriaDocente(APIView):
 
         try:
             # Read the Excel file
-            df = panda.read_excel(excel_file)
+            df = pd.read_excel(excel_file)
 
             required_columns = ['Nombre', 'Estado', 'Universidad']
             # Check if all required columns are present

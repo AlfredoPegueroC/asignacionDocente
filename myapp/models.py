@@ -99,7 +99,7 @@ class Docente(models.Model):
     Docentecodigo = models.AutoField(primary_key=True, editable=False)
     nombre = models.CharField(max_length=55)
     apellidos = models.CharField(max_length=55)
-    sexo = models.CharField(max_length=2, choices=[('F', 'Femenino'), ('M', 'Masculino')])
+    sexo = models.CharField(max_length=15, choices=[('F', 'Femenino'), ('M', 'Masculino')])
     estado_civil = models.CharField(max_length=15, choices=[('Soltero', 'Soltero'), ('Casado', 'Casado'), ('Union Libre', 'Unión Libre'), ('Viudo', 'Viudo')])
     fecha_nacimiento = models.DateField(null=True, blank=True)
     telefono = models.CharField(max_length=30)
@@ -150,7 +150,7 @@ class asignacionDocente(models.Model):
     dias = models.CharField(max_length=40)
     Aula = models.CharField(max_length=40)
     creditos = models.CharField(max_length=40)
-    period = models.CharField(max_length=7, default='2025-20')
+    period = models.CharField(max_length=40, default='2025-20')
 
     facultadCodigo = models.ForeignKey(Facultad, on_delete=models.CASCADE)
     escuelaCodigo = models.ForeignKey(Escuela, on_delete=models.CASCADE)

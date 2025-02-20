@@ -434,6 +434,8 @@ def logout_view(request):
 #endregion
 
 #region export
+
+@api_view(["GET"])
 def UniversidadExport(request):
   queryset = Universidad.objects.all()
   data = []
@@ -453,6 +455,7 @@ def UniversidadExport(request):
 
   return response
 
+@api_view(["GET"])
 def FacultadExport(request):
   queryset = Facultad.objects.all()
   data = []
@@ -473,6 +476,7 @@ def FacultadExport(request):
 
   return response
 
+@api_view(["GET"])
 def EscuelaExport(request):
   queryset = Escuela.objects.all()
   data = []
@@ -493,35 +497,42 @@ def EscuelaExport(request):
 
   return response
 
+@api_view(["GET"])
 def DocenteExport(request):
-  queryset = Docente.objects.all()
-  data = []
+    # Use select_related to optimize fetching related fields
+    queryset = Docente.objects.select_related(
+        'UniversidadCodigo', 'facultadCodigo', 'escuelaCodigo', 'tipoDocenteCodigo', 'categoriaCodigo'
+    ).values(
+        'nombre',
+        'apellidos',
+        'sexo',
+        'estado_civil',
+        'fecha_nacimiento',
+        'telefono',
+        'direccion',
+        'estado',
+        'UniversidadCodigo__nombre',  # Use double underscore for related fields
+        'facultadCodigo__nombre',
+        'escuelaCodigo__nombre',
+        'tipoDocenteCodigo__nombre',
+        'categoriaCodigo__nombre',
+    )
 
-  for docente in queryset:
-    data.append({
-      'Nombre': docente.nombre,
-      'Apellidos': docente.apellidos,
-      'Sexo': docente.sexo,
-      'Estado Civil': docente.estado_civil,
-      'Fecha de nacimiento': docente.fecha_nacimiento,
-      'Telefono': docente.telefono,
-      'Direccion': docente.direccion,
-      'Estado': docente.estado,
-      'Universidad': docente.UniversidadCodigo.nombre,
-      'Facultad': docente.facultadCodigo.nombre,
-      'Escuela': docente.escuelaCodigo.nombre,
-      'Tipo de docente': docente.tipoDocenteCodigo.nombre,
-      'Categoria docente': docente.categoriaCodigo.nombre,
-    })
+    # Convert queryset to a DataFrame directly
+    df = pd.DataFrame(list(queryset))
 
-  response = HttpResponse(content_type='application/vnd.ms-excel')
-  response['Content-Disposition'] = 'attachment; filename="Docente_data.xlsx"'
+    # Create the response for Excel file
+    response = HttpResponse(content_type='application/vnd.ms-excel')
+    response['Content-Disposition'] = 'attachment; filename="Docente_data.xlsx"'
 
-  with pd.ExcelWriter(response, engine='openpyxl') as writer:
-    pd.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
+    # Write the DataFrame to the Excel file
+    with pd.ExcelWriter(response, engine='openpyxl') as writer:
+        df.to_excel(writer, sheet_name='Sheet1', index=False)
 
-  return response
+    return response
 
+
+@api_view(["GET"])
 def CategoriaDocenteExport(request):
   queryset = CategoriaDocente.objects.all()
   data = []
@@ -541,6 +552,8 @@ def CategoriaDocenteExport(request):
 
   return response
 
+
+@api_view(["GET"])
 def TipoDocenteExport(request):
     queryset = TipoDocente.objects.all()
     data = []
@@ -560,6 +573,7 @@ def TipoDocenteExport(request):
     
     return response
 
+@api_view(["GET"])
 def PeriodoAcademicoExport(request):
     queryset = PeriodoAcademico.objects.all()
     data = []
@@ -786,14 +800,6 @@ class ImportEscuela(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-from django.db import transaction
-from django.db.models import Q
-from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.views import APIView
-import pandas as pd  # Fixed: use 'pd' instead of 'pd'
-from myapp.models import Universidad, Facultad, Escuela, TipoDocente, CategoriaDocente, Docente
 
 class ImportDocente(APIView):
     parser_classes = [MultiPartParser, FormParser]

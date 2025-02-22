@@ -523,7 +523,7 @@ def DocenteExport(request):
 
     df.rename(columns={
         'estado_civil': 'Estado Civil',
-        'fecha_nacimiento'='Fecha de nacimiento',
+        'fecha_nacimiento': 'Fecha de nacimiento',
         'tipo_docente': 'Tipo Docente',
         'categoria_docente': 'Categoria Docente',
     }, inplace=True)

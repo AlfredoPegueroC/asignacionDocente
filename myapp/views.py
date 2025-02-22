@@ -503,24 +503,30 @@ def DocenteExport(request):
     queryset = Docente.objects.select_related(
         'UniversidadCodigo', 'facultadCodigo', 'escuelaCodigo', 'tipoDocenteCodigo', 'categoriaCodigo'
     ).values(
-        'nombre',
-        'apellidos',
-        'sexo',
-        'estado_civil',
-        'fecha_nacimiento',
-        'telefono',
-        'direccion',
-        'estado',
-        'Universidad',  # Use double underscore for related fields
-        'facultadCodigo',
-        'escuelaCodigo',
-        'tipoDocenteCodigo',
-        'categoriaCodigo',
+        Nombre='nombre',
+        Apellidos='apellidos',
+        Sexo='sexo',
+        estado_civil='estado_civil',
+        fecha_nacimiento='fecha_nacimiento',
+        Telefono='telefono',
+        Direccion='direccion',
+        Estado='estado',
+        Universidad='Universidad',  # Use double underscore for related fields
+        Facultad='facultadCodigo',
+        Escuela='escuelaCodigo',
+        tipo_docente='tipoDocenteCodigo',
+        categoria_docente='categoriaCodigo',
     )
 
     # Convert queryset to a DataFrame directly
     df = pd.DataFrame(list(queryset))
 
+    df.rename(columns={
+        'estado_civil': 'Estado Civil',
+        'fecha_nacimiento'='Fecha de nacimiento',
+        'tipo_docente': 'Tipo Docente',
+        'categoria_docente': 'Categoria Docente',
+    }, inplace=True)
     # Create the response for Excel file
     response = HttpResponse(content_type='application/vnd.ms-excel')
     response['Content-Disposition'] = 'attachment; filename="Docente_data.xlsx"'

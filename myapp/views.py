@@ -497,46 +497,34 @@ def EscuelaExport(request):
 
   return response
 
-@api_view(["GET"])
 def DocenteExport(request):
-    # Use select_related to optimize fetching related fields
-    queryset = Docente.objects.select_related(
-        'UniversidadCodigo', 'facultadCodigo', 'escuelaCodigo', 'tipoDocenteCodigo', 'categoriaCodigo'
-    ).values(
-        Nombre='nombre',
-        Apellidos='apellidos',
-        Sexo='sexo',
-        estado_civil='estado_civil',
-        fecha_nacimiento='fecha_nacimiento',
-        Telefono='telefono',
-        Direccion='direccion',
-        Estado='estado',
-        Universidad='Universidad',  # Use double underscore for related fields
-        Facultad='facultadCodigo',
-        Escuela='escuelaCodigo',
-        tipo_docente='tipoDocenteCodigo',
-        categoria_docente='categoriaCodigo',
-    )
+  queryset = Docente.objects.all()
+  data = []
 
-    # Convert queryset to a DataFrame directly
-    df = pd.DataFrame(list(queryset))
+  for docente in queryset:
+    data.append({
+      'Nombre': docente.nombre,
+      'Apellidos': docente.apellidos,
+      'Sexo': docente.sexo,
+      'Estado Civil': docente.estado_civil,
+      'Fecha de nacimiento': docente.fecha_nacimiento,
+      'Telefono': docente.telefono,
+      'Direccion': docente.direccion,
+      'Estado': docente.estado,
+      'Universidad': docente.UniversidadCodigo.nombre,
+      'Facultad': docente.facultadCodigo.nombre,
+      'Escuela': docente.escuelaCodigo.nombre,
+      'Tipo de docente': docente.tipoDocenteCodigo.nombre,
+      'Categoria docente': docente.categoriaCodigo.nombre,
+    })
 
-    df.rename(columns={
-        'estado_civil': 'Estado Civil',
-        'fecha_nacimiento': 'Fecha de nacimiento',
-        'tipo_docente': 'Tipo Docente',
-        'categoria_docente': 'Categoria Docente',
-    }, inplace=True)
-    # Create the response for Excel file
-    response = HttpResponse(content_type='application/vnd.ms-excel')
-    response['Content-Disposition'] = 'attachment; filename="Docente_data.xlsx"'
+  response = HttpResponse(content_type='application/vnd.ms-excel')
+  response['Content-Disposition'] = 'attachment; filename="Docente_data.xlsx"'
 
-    # Write the DataFrame to the Excel file
-    with pd.ExcelWriter(response, engine='openpyxl') as writer:
-        df.to_excel(writer, sheet_name='Sheet1', index=False)
+  with pd.ExcelWriter(response, engine='openpyxl') as writer:
+    pd.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
 
-    return response
-
+  return response
 
 @api_view(["GET"])
 def CategoriaDocenteExport(request):

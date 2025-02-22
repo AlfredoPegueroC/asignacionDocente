@@ -511,11 +511,11 @@ def DocenteExport(request):
         'telefono',
         'direccion',
         'estado',
-        'UniversidadCodigo__nombre',  # Use double underscore for related fields
-        'facultadCodigo__nombre',
-        'escuelaCodigo__nombre',
-        'tipoDocenteCodigo__nombre',
-        'categoriaCodigo__nombre',
+        'Universidad',  # Use double underscore for related fields
+        'facultadCodigo',
+        'escuelaCodigo',
+        'tipoDocenteCodigo',
+        'categoriaCodigo',
     )
 
     # Convert queryset to a DataFrame directly

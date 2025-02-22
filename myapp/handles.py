@@ -96,7 +96,7 @@ def getAllHandle_asignacion(request, modelData, serializer_class):
             queryset = queryset.filter(**filters)
 
         # Sort by a field (default is "id")
-        sort_by = request.query_params.get('sort_by', 'id')
+        sort_by = request.query_params.get('sort_by', 'ADIDcodigo')
         if hasattr(modelData, sort_by.lstrip('-')):  # Ensure sort field exists in the model
             queryset = queryset.order_by(sort_by)
 

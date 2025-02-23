@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-b4$=d@y&j@k0qbs&47ys_3wxngt%)v!v*s499jf0_k)9iblx4j
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['.vercel.app','127.0.0.1', '.now.sh', 'https://asignaciondocente-production.up.railway.app']
+ALLOWED_HOSTS = ['*']
 CSRF_TRUSTED_ORIGINS= ["https://asignaciondocente-production.up.railway.app"]
 
 # Application definition

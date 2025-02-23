@@ -860,6 +860,7 @@ class ImportAsignacion(APIView):
 
             records_to_create = []
             failed_rows = []
+            duplicates = []
 
             for _, row in df.iterrows():
                 try:
@@ -876,20 +877,30 @@ class ImportAsignacion(APIView):
                         failed_rows.append(f"Docente name '{row['Profesor']}' is invalid.")
                         continue
 
-                    nombre = " ".join(full_name[:-1])  # Everything except last word
-                    apellidos = full_name[-1]  # Last word
-                    docente_nombre = f"{nombre} {apellidos}".strip().lower()
+                    nombre = " ".join(full_name[:-1]).strip()  # Everything except last word
+                    apellidos = full_name[-1].strip()  # Last word
+                    docente_nombre = f"{nombre} {apellidos}".lower()
                     docente = docentes.get(docente_nombre)
 
                     if not docente:
-                        failed_rows.append(
-                            f"El docente '{nombre} {apellidos}' no existe."
-                        )
+                        failed_rows.append(f"El docente '{nombre} {apellidos}' no existe.")
+                        continue
+
+                    # Check for duplicate record
+                    existing_record = asignacionDocente.objects.filter(
+                        nrc=row["NRC"],
+                        clave=row["Clave"],
+                        codigo=row["Codigo"],
+                        period=period
+                    ).exists()
+
+                    if existing_record:
+                        duplicates.append(f"Registro duplicado encontrado: NRC {row['NRC']}, Clave {row['Clave']}, Codigo {row['Codigo']}")
                         continue
 
                     # Prepare the record for bulk creation
                     records_to_create.append(
-                        AsignacionDocente(
+                        asignacionDocente(
                             nrc=row["NRC"],
                             clave=row["Clave"],
                             asignatura=row["Asignatura"],
@@ -916,14 +927,15 @@ class ImportAsignacion(APIView):
                 except Exception as e:
                     failed_rows.append(f"Error processing row {row.to_dict()}: {str(e)}")
 
-            # Perform a bulk create of all records
-            with transaction.atomic():
-                if records_to_create:
-                    AsignacionDocente.objects.bulk_create(records_to_create)
+            # Perform a bulk create of all records if there are any valid records to create
+            if records_to_create:
+                with transaction.atomic():
+                    asignacionDocente.objects.bulk_create(records_to_create)
 
             response_data = {
                 "message": f"Se han importado {len(records_to_create)} registros.",
-                "failed_records": failed_rows
+                "failed_records": failed_rows,
+                "duplicate_records": duplicates,
             }
 
             return Response(response_data, status=status.HTTP_201_CREATED)

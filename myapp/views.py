@@ -632,79 +632,6 @@ def asignacionDocenteExport(request):
 #endregion
 
 #region Import
-class ImportFacultad(APIView):
-    parser_classes = [MultiPartParser, FormParser]
-
-    def post(self, request, *args, **kwargs):
-        excel_file = request.FILES.get('excel_file')
-        if not excel_file:
-            return Response({"error": "No excel enviado"}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            # Read the Excel file
-            df = pd.read_excel(excel_file)
-
-            required_columns = ['Nombre', 'Estado', 'Universidad']
-            missing_columns = [col for col in required_columns if col not in df.columns]
-            if missing_columns:
-                return Response(
-                    {"error": f"Falta la columna: {', '.join(missing_columns)}"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            records_to_create = []
-            records_created = 0
-
-            with transaction.atomic():
-                for _, row in df.iterrows():
-                    try:
-                        universidad = Universidad.objects.filter(nombre=row['Universidad']).first()
-                        if universidad is None:
-                            return Response(
-                                {"error": f"Universidad con nombre '{row['Universidad']}' no existe."},
-                                status=status.HTTP_400_BAD_REQUEST
-                            )
-
-                        # Ensure that we filter by both name and university
-                        facultad = Facultad.objects.filter(nombre=row['Nombre'], UniversidadCodigo=universidad).first()
-                        if facultad:
-                            # Facultad already exists
-                            continue
-
-                        # Create Facultad instance
-                        facultad_instance = Facultad(
-                            nombre=row['Nombre'],
-                            estado=row['Estado'],
-                            UniversidadCodigo=universidad
-                        )
-                        records_to_create.append(facultad_instance)
-
-                    except KeyError as e:
-                        return Response(
-                            {"error": f"Falta los datos de la columna: {str(e)}"},
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
-                    except Exception as e:
-                        return Response(
-                            {"error": f"Error processing row: {str(e)}"},
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
-
-                if records_to_create:
-                    Facultad.objects.bulk_create(records_to_create)
-                    records_created = len(records_to_create)
-
-            return Response(
-                {"message": f"Se han importado {records_created} registros."},
-                status=status.HTTP_201_CREATED
-            )
-
-        except Exception as e:
-            return Response(
-                {"error": f"An error occurred: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
 class ImportEscuela(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
@@ -898,7 +825,6 @@ class ImportDocente(APIView):
         except Exception as e:
             return Response({"error": f"Ocurrió un error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
 class ImportAsignacion(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
@@ -928,38 +854,42 @@ class ImportAsignacion(APIView):
                 )
 
             # Fetch all Facultad, Escuela, and Docente objects beforehand
-            facultades = {f.nombre: f for f in Facultad.objects.all()}
-            escuelas = {e.nombre: e for e in Escuela.objects.all()}
-            docentes = {f"{d.nombre} {d.apellidos}": d for d in Docente.objects.all()}
+            facultades = {f.nombre.strip().lower(): f for f in Facultad.objects.all()}
+            escuelas = {e.nombre.strip().lower(): e for e in Escuela.objects.all()}
+            docentes = {f"{d.nombre.strip()} {d.apellidos.strip()}".lower(): d for d in Docente.objects.all()}
 
             records_to_create = []
+            failed_rows = []
+
             for _, row in df.iterrows():
                 try:
                     # Retrieve Facultad & Escuela
-                    facultad = facultades.get(row["Facultad"].strip())
-                    escuela = escuelas.get(row["Escuela"].strip())
+                    facultad_nombre = row["Facultad"].strip().lower()
+                    escuela_nombre = row["Escuela"].strip().lower()
+
+                    facultad = facultades.get(facultad_nombre)
+                    escuela = escuelas.get(escuela_nombre)
 
                     # Process docente name
                     full_name = row["Profesor"].strip().split()
                     if len(full_name) < 2:
-                        return Response(
-                            {"error": f"Docente name '{row['Profesor']}' is invalid."},
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
+                        failed_rows.append(f"Docente name '{row['Profesor']}' is invalid.")
+                        continue
 
                     nombre = " ".join(full_name[:-1])  # Everything except last word
                     apellidos = full_name[-1]  # Last word
+                    docente_nombre = f"{nombre} {apellidos}".strip().lower()
+                    docente = docentes.get(docente_nombre)
 
-                    docente = docentes.get(f"{nombre} {apellidos}")
                     if not docente:
-                        return Response(
-                            {"error": f"El docente '{nombre} {apellidos}' No existe."},
-                            status=status.HTTP_400_BAD_REQUEST,
+                        failed_rows.append(
+                            f"El docente '{nombre} {apellidos}' no existe."
                         )
+                        continue
 
                     # Prepare the record for bulk creation
                     records_to_create.append(
-                        asignacionDocente(
+                        AsignacionDocente(
                             nrc=row["NRC"],
                             clave=row["Clave"],
                             asignatura=row["Asignatura"],
@@ -982,19 +912,21 @@ class ImportAsignacion(APIView):
                     )
 
                 except KeyError as e:
-                    return Response(
-                        {"error": f"Falta el dato: {str(e)}"},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
+                    failed_rows.append(f"Falta el dato: {str(e)}")
+                except Exception as e:
+                    failed_rows.append(f"Error processing row {row.to_dict()}: {str(e)}")
 
             # Perform a bulk create of all records
             with transaction.atomic():
-                asignacionDocente.objects.bulk_create(records_to_create)
+                if records_to_create:
+                    AsignacionDocente.objects.bulk_create(records_to_create)
 
-            return Response(
-                {"message": f"Se han importado {len(records_to_create)} registros"},
-                status=status.HTTP_201_CREATED,
-            )
+            response_data = {
+                "message": f"Se han importado {len(records_to_create)} registros.",
+                "failed_records": failed_rows
+            }
+
+            return Response(response_data, status=status.HTTP_201_CREATED)
 
         except Exception as e:
             return Response(
@@ -1024,21 +956,39 @@ class ImportUniversidad(APIView):
                 )
 
             records_to_create = []
-            for _, row in df.iterrows():
-                nombre = str(row.get('Nombre', '')).strip()
-                estado = str(row.get('Estado', '')).strip()
+            failed_rows = []
 
-                # Create a new Universidad object
-                records_to_create.append(Universidad(nombre=nombre, estado=estado))
+            for _, row in df.iterrows():
+                try:
+                    nombre = str(row.get('Nombre', '')).strip()
+                    estado = str(row.get('Estado', '')).strip()
+
+                    # Validate the data
+                    if not nombre or not estado:
+                        failed_rows.append(f"Invalid data in row: {row.to_dict()}")
+                        continue
+
+                    # Check if the record already exists
+                    if Universidad.objects.filter(nombre=nombre, estado=estado).exists():
+                        failed_rows.append(f"Record already exists: {nombre}, {estado}")
+                        continue
+
+                    # Create a new Universidad object
+                    records_to_create.append(Universidad(nombre=nombre, estado=estado))
+
+                except Exception as e:
+                    failed_rows.append(f"Error processing row {row.to_dict()}: {str(e)}")
 
             # Use transaction.atomic() to ensure all or nothing
             with transaction.atomic():
                 Universidad.objects.bulk_create(records_to_create)
 
-            return Response(
-                {"message": f"Se han importado {len(records_to_create)} registros."},
-                status=status.HTTP_201_CREATED
-            )
+            response_data = {
+                "message": f"Se han importado {len(records_to_create)} registros.",
+                "failed_records": failed_rows
+            }
+
+            return Response(response_data, status=status.HTTP_201_CREATED)
 
         except Exception as e:
             return Response(
@@ -1046,8 +996,10 @@ class ImportUniversidad(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-class ImportTipoDocente(APIView):
+class ImportData(APIView):
     parser_classes = [MultiPartParser, FormParser]
+
+    model_class = None  # To be defined in subclasses
 
     def post(self, request, *args, **kwargs):
         excel_file = request.FILES.get('excel_file')
@@ -1059,7 +1011,6 @@ class ImportTipoDocente(APIView):
             df = pd.read_excel(excel_file)
 
             required_columns = ['Nombre', 'Estado', 'Universidad']
-            # Check if all required columns are present
             missing_columns = [col for col in required_columns if col not in df.columns]
             if missing_columns:
                 return Response(
@@ -1070,90 +1021,28 @@ class ImportTipoDocente(APIView):
             records_to_create = []
             for _, row in df.iterrows():
                 try:
-                    universidad = Universidad.objects.get(nombre=row['Universidad'])
-
-                    # Prepare the TipoDocente object for bulk creation
-                    records_to_create.append(TipoDocente(
-                        nombre=row['Nombre'],
-                        estado=row['Estado'],
-                        UniversidadCodigo=universidad
-                    ))
-
-                except Universidad.DoesNotExist:
-                    return Response(
-                        {"error": f"Universidad con nombre {row['Universidad']} no existe."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                except KeyError as e:
-                    return Response(
-                        {"error": f"Falta los datos de la columna: {str(e)}"},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                except Exception as e:
-                    return Response(
-                        {"error": f"Error processing row: {str(e)}"},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-
-            # Use transaction.atomic() to ensure all or nothing
-            with transaction.atomic():
-                TipoDocente.objects.bulk_create(records_to_create)
-
-            return Response(
-                {"message": f"Se han importado {len(records_to_create)} registros."},
-                status=status.HTTP_201_CREATED
-            )
-
-        except Exception as e:
-            return Response(
-                {"error": f"An error occurred: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-
-class ImportCategoriaDocente(APIView):
-    parser_classes = [MultiPartParser, FormParser]
-
-    def post(self, request, *args, **kwargs):
-        excel_file = request.FILES.get('excel_file')
-        if not excel_file:
-            return Response({"error": "No excel enviado"}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            # Read the Excel file
-            df = pd.read_excel(excel_file)
-
-            required_columns = ['Nombre', 'Estado', 'Universidad']
-            # Check if all required columns are present
-            missing_columns = [col for col in required_columns if col not in df.columns]
-            if missing_columns:
-                return Response(
-                    {"error": f"Falta la columna: {', '.join(missing_columns)}"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            records_to_create = []
-            for _, row in df.iterrows():
-                try:
-                    # Ensure values are treated as strings
                     nombre = str(row.get('Nombre', '')).strip()
                     estado = str(row.get('Estado', '')).strip()
                     universidad_nombre = str(row.get('Universidad', '')).strip()
 
-                    universidad = Universidad.objects.get(nombre=universidad_nombre)
+                    universidad = Universidad.objects.filter(nombre=universidad_nombre).first()
+                    if not universidad:
+                        return Response(
+                            {"error": f"Universidad con nombre '{universidad_nombre}' no existe."},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
 
-                    # Prepare the CategoriaDocente object for bulk creation
-                    records_to_create.append(CategoriaDocente(
+                    # Check if record already exists
+                    if self.model_class.objects.filter(nombre=nombre, UniversidadCodigo=universidad).exists():
+                        continue  # Skip duplicates
+
+                    # Prepare the object for bulk creation
+                    records_to_create.append(self.model_class(
                         nombre=nombre,
                         estado=estado,
                         UniversidadCodigo=universidad
                     ))
 
-                except Universidad.DoesNotExist:
-                    return Response(
-                        {"error": f"Universidad con nombre {universidad_nombre} no existe."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
                 except KeyError as e:
                     return Response(
                         {"error": f"Falta los datos de la columna: {str(e)}"},
@@ -1165,9 +1054,10 @@ class ImportCategoriaDocente(APIView):
                         status=status.HTTP_400_BAD_REQUEST
                     )
 
-            # Use transaction.atomic() to ensure all or nothing
-            with transaction.atomic():
-                CategoriaDocente.objects.bulk_create(records_to_create)
+            # Bulk create in a single transaction
+            if records_to_create:
+                with transaction.atomic():
+                    self.model_class.objects.bulk_create(records_to_create)
 
             return Response(
                 {"message": f"Se han importado {len(records_to_create)} registros."},
@@ -1179,71 +1069,13 @@ class ImportCategoriaDocente(APIView):
                 {"error": f"An error occurred: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-    parser_classes = [MultiPartParser, FormParser]
 
-    def post(self, request, *args, **kwargs):
-        excel_file = request.FILES.get('excel_file')
-        if not excel_file:
-            return Response({"error": "No excel enviado"}, status=status.HTTP_400_BAD_REQUEST)
+class ImportFacultad(ImportData):
+    model_class = Facultad
 
-        try:
-            # Read the Excel file
-            df = pd.read_excel(excel_file)
+class ImportCategoriaDocente(ImportData):
+    model_class = CategoriaDocente
 
-            required_columns = ['Nombre', 'Estado', 'Universidad']
-            # Check if all required columns are present
-            missing_columns = [col for col in required_columns if col not in df.columns]
-            if missing_columns:
-                return Response(
-                    {"error": f"Falta la columna: {', '.join(missing_columns)}"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            records_to_create = []
-            for _, row in df.iterrows():
-                try:
-                    # Ensure values are treated as strings
-                    nombre = str(row.get('Nombre', '')).strip()
-                    estado = str(row.get('Estado', '')).strip()
-                    universidad_nombre = str(row.get('Universidad', '')).strip()
-
-                    universidad = Universidad.objects.get(nombre=universidad_nombre)
-
-                    # Prepare the CategoriaDocente object for bulk creation
-                    records_to_create.append(CategoriaDocente(
-                        nombre=nombre,
-                        estado=estado,
-                        UniversidadCodigo=universidad
-                    ))
-
-                except Universidad.DoesNotExist:
-                    return Response(
-                        {"error": f"Universidad con nombre {universidad_nombre} no existe."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                except KeyError as e:
-                    return Response(
-                        {"error": f"Falta los datos de la columna: {str(e)}"},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                except Exception as e:
-                    return Response(
-                        {"error": f"Error processing row: {str(e)}"},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-
-            # Use transaction.atomic() to ensure all or nothing
-            with transaction.atomic():
-                CategoriaDocente.objects.bulk_create(records_to_create)
-
-            return Response(
-                {"message": f"Se han importado {len(records_to_create)} registros."},
-                status=status.HTTP_201_CREATED
-            )
-
-        except Exception as e:
-            return Response(
-                {"error": f"An error occurred: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+class ImportTipoDocente(ImportData):
+    model_class = TipoDocente
 #endregion

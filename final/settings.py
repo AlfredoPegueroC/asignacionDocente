@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-b4$=d@y&j@k0qbs&47ys_3wxngt%)v!v*s499jf0_k)9iblx4j
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ["127.0.0.1", "https://asignaciondocente-production.up.railway.app"]
 CSRF_TRUSTED_ORIGINS= ["https://asignaciondocente-production.up.railway.app"]
 
 # Application definition
@@ -145,6 +145,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = 'static/'
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  
+STATIC_URL = '/static/'  
 STATICSTORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field

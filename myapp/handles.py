@@ -20,6 +20,10 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from django.db.models import Q
 
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.response import Response
+from django.db.models import Q
+
 def getAllHandle(request, modelData, serializer_class):
     try:
         # Fetch all objects
@@ -56,12 +60,26 @@ def getAllHandle(request, modelData, serializer_class):
         serializer = serializer_class(paginated_queryset, many=True)
 
         # Manually create next and previous URLs with HTTPS
-        request_scheme = request.scheme  # 'http' or 'https'
-        request_host = request.get_host()
-        next_url = paginator.get_next_link()
-        previous_url = paginator.get_previous_link()
+        page_number = paginator.page.number
+        total_pages = paginator.page.paginator.num_pages
+        base_url = request.build_absolute_uri(request.path)
 
-        # Modify URLs to use HTTPS
+        next_url = None
+        previous_url = None
+
+        if page_number < total_pages:
+            next_url = f"{base_url}?page={page_number + 1}"
+            for key, value in request.query_params.items():
+                if key != 'page':
+                    next_url += f"&{key}={value}"
+
+        if page_number > 1:
+            previous_url = f"{base_url}?page={page_number - 1}"
+            for key, value in request.query_params.items():
+                if key != 'page':
+                    previous_url += f"&{key}={value}"
+
+        # Ensure URLs are HTTPS
         if next_url:
             next_url = next_url.replace("http://", "https://")
         if previous_url:
@@ -78,6 +96,7 @@ def getAllHandle(request, modelData, serializer_class):
         return Response(response_data)
     except Exception as e:
         return Response({'error': str(e)}, status=500)
+
 
 
 def getAllHandle_asignacion(request, modelData, serializer_class):

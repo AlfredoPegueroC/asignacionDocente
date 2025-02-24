@@ -20,10 +20,6 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from django.db.models import Q
 
-from rest_framework.pagination import PageNumberPagination
-from rest_framework.response import Response
-from django.db.models import Q
-
 def getAllHandle(request, modelData, serializer_class):
     try:
         # Fetch all objects
@@ -62,7 +58,7 @@ def getAllHandle(request, modelData, serializer_class):
         # Manually create next and previous URLs with HTTPS
         page_number = paginator.page.number
         total_pages = paginator.page.paginator.num_pages
-        base_url = request.build_absolute_uri(request.path)
+        base_url = f"https://{request.get_host()}{request.path}"
 
         next_url = None
         previous_url = None
@@ -79,12 +75,6 @@ def getAllHandle(request, modelData, serializer_class):
                 if key != 'page':
                     previous_url += f"&{key}={value}"
 
-        # Ensure URLs are HTTPS
-        if next_url:
-            next_url = next_url.replace("http://", "https://")
-        if previous_url:
-            previous_url = previous_url.replace("http://", "https://")
-
         # Create the response
         response_data = {
             'count': paginator.page.paginator.count,
@@ -96,7 +86,6 @@ def getAllHandle(request, modelData, serializer_class):
         return Response(response_data)
     except Exception as e:
         return Response({'error': str(e)}, status=500)
-
 
 
 def getAllHandle_asignacion(request, modelData, serializer_class):

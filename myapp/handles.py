@@ -72,7 +72,6 @@ def getAllHandle_asignacion(request, modelData, serializer_class):
         # Search filter (optional)
         search_query = request.query_params.get('search', None)
         if search_query:
-
             query = Q()
             # Loop over the fields of the model
             for field in modelData._meta.get_fields():
@@ -109,8 +108,10 @@ def getAllHandle_asignacion(request, modelData, serializer_class):
         # Serialize paginated data
         serializer = serializer_class(paginated_queryset, many=True)
 
-        # Return paginated response
-        return paginator.get_paginated_response(serializer.data)
+        # Ensure pagination links are using HTTPS
+        request.scheme = 'https'  # Force request scheme to HTTPS
+        response = paginator.get_paginated_response(serializer.data)
+        return response
 
     except Exception as e:
         # Handle exceptions (e.g., database errors)

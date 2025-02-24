@@ -105,13 +105,13 @@ def getAllHandle_asignacion(request, modelData, serializer_class):
                         query |= Q(**{f"{field.name}__icontains": search_query})
                     elif field_type == 'ForeignKey':  # Handle ForeignKey fields
                         related_model = field.related_model
-                        # Search by related field's text fields (e.g., `nombre` or `apellidos` for `Docente`)
+                        # Search by related field's text fields
                         for related_field in related_model._meta.get_fields():
                             if hasattr(related_field, 'get_internal_type') and related_field.get_internal_type() in ['CharField', 'TextField']:
                                 query |= Q(**{f"{field.name}__{related_field.name}__icontains": search_query})
             queryset = queryset.filter(query)
 
-        # Filter by other query parameters (e.g., name, state)
+        # Filter by other query parameters
         filters = {}
         for key, value in request.query_params.items():
             if hasattr(modelData, key):  # Ensure the filter key exists in the model
@@ -119,7 +119,7 @@ def getAllHandle_asignacion(request, modelData, serializer_class):
         if filters:
             queryset = queryset.filter(**filters)
 
-        # Sort by a field (default is "id")
+        # Sort by a field (default is "ADIDcodigo")
         sort_by = request.query_params.get('sort_by', 'ADIDcodigo')
         if hasattr(modelData, sort_by.lstrip('-')):  # Ensure sort field exists in the model
             queryset = queryset.order_by(sort_by)
@@ -132,8 +132,35 @@ def getAllHandle_asignacion(request, modelData, serializer_class):
         # Serialize paginated data
         serializer = serializer_class(paginated_queryset, many=True)
 
-        # Return paginated response
-        return paginator.get_paginated_response(serializer.data)
+        # Manually create next and previous URLs with HTTPS
+        page_number = paginator.page.number
+        total_pages = paginator.page.paginator.num_pages
+        base_url = f"https://{request.get_host()}{request.path}"
+
+        next_url = None
+        previous_url = None
+
+        if page_number < total_pages:
+            next_url = f"{base_url}?page={page_number + 1}"
+            for key, value in request.query_params.items():
+                if key != 'page':
+                    next_url += f"&{key}={value}"
+
+        if page_number > 1:
+            previous_url = f"{base_url}?page={page_number - 1}"
+            for key, value in request.query_params.items():
+                if key != 'page':
+                    previous_url += f"&{key}={value}"
+
+        # Create the response
+        response_data = {
+            'count': paginator.page.paginator.count,
+            'next': next_url,
+            'previous': previous_url,
+            'results': serializer.data
+        }
+
+        return Response(response_data)
 
     except Exception as e:
         # Handle exceptions (e.g., database errors)

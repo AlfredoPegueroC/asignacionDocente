@@ -139,3 +139,6 @@ def deleteHandler(request, pk, modelData):
         return Response(status=status.HTTP_204_NO_CONTENT)
     except modelData.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
+
+def testhandler(request):
+    return Response({"message": "Hello, World!"}, status=status.HTTP_200_OK)

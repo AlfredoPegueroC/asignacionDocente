@@ -72,6 +72,7 @@ def getAllHandle_asignacion(request, modelData, serializer_class):
         # Search filter (optional)
         search_query = request.query_params.get('search', None)
         if search_query:
+            
             query = Q()
             # Loop over the fields of the model
             for field in modelData._meta.get_fields():

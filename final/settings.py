@@ -29,7 +29,7 @@ DEBUG = False
 
 ALLOWED_HOSTS = ['*']
 CSRF_TRUSTED_ORIGINS= ["https://asignaciondocente-production.up.railway.app"]
-
+SECURE_SSL_REDIRECT = True
 # Application definition
 
 INSTALLED_APPS = [

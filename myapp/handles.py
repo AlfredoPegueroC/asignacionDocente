@@ -96,7 +96,7 @@ def getAllHandle_asignacion(request, modelData, serializer_class):
             queryset = queryset.filter(**filters)
 
         # Sort by a field (default is "id")
-        sort_by = request.query_params.get('sort_by', 'nombre')
+        sort_by = request.query_params.get('sort_by', 'ADIDcodigo')
         if hasattr(modelData, sort_by.lstrip('-')):  # Ensure sort field exists in the model
             queryset = queryset.order_by(sort_by)
 
@@ -108,10 +108,8 @@ def getAllHandle_asignacion(request, modelData, serializer_class):
         # Serialize paginated data
         serializer = serializer_class(paginated_queryset, many=True)
 
-        # Ensure pagination links are using HTTPS
-        request.scheme = 'https'  # Force request scheme to HTTPS
-        response = paginator.get_paginated_response(serializer.data)
-        return response
+        # Return paginated response
+        return paginator.get_paginated_response(serializer.data)
 
     except Exception as e:
         # Handle exceptions (e.g., database errors)

@@ -113,7 +113,7 @@ def getAllAsignacion_frontend(request):
 
 
 @api_view(['GET'])
-def get_universidad(request):
+def get_Universidad(request):
     return getAll(request, Universidad, UniversidadSerializer)
 
 @api_view(['GET'])

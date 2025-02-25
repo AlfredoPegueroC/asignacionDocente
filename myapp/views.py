@@ -20,7 +20,7 @@ from .models import (
     Docente, 
     PeriodoAcademico,
     asignacionDocente)
-from .handles import createHandle, getAllHandle, deleteHandler,getAllHandle_asignacion
+from .handles import createHandle, getAllHandle, deleteHandler,getAllHandle_asignacion, getAll
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view
 from rest_framework.views import APIView
@@ -104,12 +104,40 @@ def getAllPeriodoAcademico(request):
 
 @api_view(['GET'])
 def getAllAsignacion(request):
-  return getAllHandle_asignacion(request, asignacionDocente, asignacionDocenteSerializer)
+  return getAllHandle(request, asignacionDocente, asignacionDocenteSerializer)
 
 @api_view(['GET'])
 def getAllAsignacion_frontend(request):
   return getAllHandle_asignacion(request,asignacionDocente,asignacionDocenteSerializer_frontend)
+
+
+
+@api_view(['GET'])
+def get_universidad(request):
+    return getAll(request, Universidad, UniversidadSerializer)
+
+@api_view(['GET'])
+def get_Facultad(request):
+    return getAll(request, Facultad, FacultadSerializer)
+
+@api_view(['GET'])
+def get_Escuela(request):
+    return getAll(request, Escuela, EscuelaSerializer)
+@api_view(['GET'])
+def get_TipoDocente(request):
+    return getAll(request, TipoDocente, TipoDocenteSerializer)
+@api_view(['GET'])
+def get_CategoriaDocente(request):
+    return getAll(request, CategoriaDocente, CategoriaDocenteSerializer)
+@api_view(['GET'])
+def get_Docente(request):
+    return getAll(request, Docente, DocenteSerializer)
+@api_view(['GET'])
+def get_PeriodoAcademico(request):
+    return getAll(request, PeriodoAcademico, PeriodoAcademicoSerializer)
 #endregion
+
+
 
 #region UPDATE
 

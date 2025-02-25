@@ -43,7 +43,7 @@ def getAllHandle(request, modelData, serializer_class):
 
         # Sort by a field (default is "id")
         sort_by = request.query_params.get('sort_by', 'id')
-        if hasattr(modelData, sort_by.lstrip('-')):  # Ensure sort field exists in the model
+        if hasattr(modelData, sort_by.lstrip('-')):
             queryset = queryset.order_by(sort_by)
 
         # Pagination
@@ -57,6 +57,26 @@ def getAllHandle(request, modelData, serializer_class):
         # Return paginated response
         return paginator.get_paginated_response(serializer.data)
         
+    except Exception as e:
+        # Handle exceptions (e.g., database errors)
+        return Response(
+            {"error": str(e)}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+
+def getAll(request, modelData, serializer_class):
+    try:
+        # Fetch all objects
+        queryset = modelData.objects.all()
+
+        # Serialize data
+        serializer = serializer_class(queryset, many=True)
+
+        # Return response with serialized data
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
     except Exception as e:
         # Handle exceptions (e.g., database errors)
         return Response(

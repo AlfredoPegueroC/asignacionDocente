@@ -159,5 +159,3 @@ class asignacionDocente(models.Model):
     #FOREIGHKEY 
     def __str__(self):
       return f"{self.nrc} {self.clave} {self.asignatura}"
-    class Meta:
-      unique_together = ('nrc', 'period')

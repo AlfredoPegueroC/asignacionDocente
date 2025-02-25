@@ -890,6 +890,7 @@ class ImportAsignacion(APIView):
             failed_rows = []
             duplicates = []
 
+            # First pass: Validate all rows
             for _, row in df.iterrows():
                 try:
                     # Retrieve Facultad & Escuela
@@ -910,8 +911,15 @@ class ImportAsignacion(APIView):
                     docente_nombre = f"{nombre} {apellidos}".lower()
                     docente = docentes.get(docente_nombre)
 
+                    if not facultad:
+                        failed_rows.append(f"Facultad '{facultad_nombre}' no existe.")
+                    if not escuela:
+                        failed_rows.append(f"Escuela '{escuela_nombre}' no existe.")
                     if not docente:
                         failed_rows.append(f"El docente '{nombre} {apellidos}' no existe.")
+
+                    # If any required entity is missing, skip this row
+                    if not facultad or not escuela or not docente:
                         continue
 
                     # Check for duplicate record
@@ -955,6 +963,13 @@ class ImportAsignacion(APIView):
                 except Exception as e:
                     failed_rows.append(f"Error processing row {row.to_dict()}: {str(e)}")
 
+            # If there are any failed rows, return the error response without creating any records
+            if failed_rows:
+                return Response(
+                    {"error": "No se han importado registros. Errores encontrados:", "failed_records": failed_rows},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
             # Perform a bulk create of all records if there are any valid records to create
             if records_to_create:
                 with transaction.atomic():
@@ -962,7 +977,6 @@ class ImportAsignacion(APIView):
 
             response_data = {
                 "message": f"Se han importado {len(records_to_create)} registros.",
-                "failed_records": failed_rows,
                 "duplicate_records": duplicates,
             }
 
@@ -973,6 +987,7 @@ class ImportAsignacion(APIView):
                 {"error": f"An error occurred: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
 
 class ImportUniversidad(APIView):
     parser_classes = [MultiPartParser, FormParser]

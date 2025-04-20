@@ -10,7 +10,9 @@ from .serializer import (
   DocenteSerializer,
   PeriodoAcademicoSerializer,
   asignacionDocenteSerializer,
-  asignacionDocenteSerializer_frontend)
+  asignacionDocenteSerializer_frontend,
+  UserSerializer
+)
 from .models import (
     Universidad, 
     Facultad, 
@@ -19,7 +21,8 @@ from .models import (
     CategoriaDocente, 
     Docente, 
     PeriodoAcademico,
-    asignacionDocente)
+    asignacionDocente
+    )
 from .handles import createHandle, getAllHandle, deleteHandler,getAllHandle_asignacion, getAll
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view
@@ -30,6 +33,7 @@ from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
+from django.contrib.auth.models import User
 from django.db import transaction
 from rest_framework_simplejwt.tokens import RefreshToken,TokenError
 import pandas as pd
@@ -38,6 +42,15 @@ import pandas as pd
 # Create your views here.
 def index(request):
   return render(request, 'client/index.html')
+
+class UserListView(APIView):
+    def get(self, request):
+        try:
+            users = User.objects.all()
+            serializer = UserSerializer(users, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
 
 # HERE IS ALL THE ENDPOINTS OF THE API
 
@@ -1134,3 +1147,55 @@ class ImportCategoriaDocente(ImportData):
 class ImportTipoDocente(ImportData):
     model_class = TipoDocente
 #endregion
+
+@api_view(['POST'])
+def copiar_asignaciones(request):
+    from_period = request.data.get('from_period')
+    to_period = request.data.get('to_period')
+
+    if not from_period or not to_period:
+        return Response({"error": "Parámetros inválidos"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        asignaciones_origen = asignacionDocente.objects.filter(period=from_period)
+        cantidad_origen = asignaciones_origen.count()
+
+        if cantidad_origen == 0:
+            return Response({
+                "message": f"No hay asignaciones en el periodo {from_period}"
+            }, status=200)
+
+        nuevas_asignaciones = []
+
+        for a in asignaciones_origen:
+            nuevas_asignaciones.append(asignacionDocente(
+                nrc=a.nrc,
+                clave=a.clave,
+                asignatura=a.asignatura,
+                codigo=a.codigo,
+                DocenteCodigo=a.DocenteCodigo,
+                seccion=a.seccion,
+                modalidad=a.modalidad,
+                campus=a.campus,
+                facultadCodigo=a.facultadCodigo,
+                escuelaCodigo=a.escuelaCodigo,
+                tipo=a.tipo,
+                cupo=a.cupo,
+                inscripto=a.inscripto,
+                horario=a.horario,
+                dias=a.dias,
+                Aula=a.Aula,
+                creditos=a.creditos,
+                period=to_period  # ✅ corregido aquí
+            ))
+
+        asignacionDocente.objects.bulk_create(nuevas_asignaciones)
+
+        return Response({
+            "message": f"{len(nuevas_asignaciones)} asignaciones copiadas de {from_period} a {to_period}"
+        }, status=201)
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response({"error": str(e)}, status=500)

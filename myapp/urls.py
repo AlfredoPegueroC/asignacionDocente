@@ -8,6 +8,9 @@ from django.conf.urls.static import static
 urlpatterns = [
     #URLS CREATE
     path('', views.index, name='index'),
+    path('api/usuarios', views.UserListView.as_view(), name='user-list'),
+    path('api/asignacion/copiar', views.copiar_asignaciones),
+    
     path('api/universidad/create', views.create_Universidad),
     path('api/facultad/create', views.create_Facultad),
     path('api/escuela/create', views.create_Escuela),

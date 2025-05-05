@@ -12,6 +12,7 @@ urlpatterns = [
     path('api/asignacion/copiar', views.copiar_asignaciones),
     
     path('api/universidad/create', views.create_Universidad),
+    path('api/campus/create', views.create_Campus),
     path('api/facultad/create', views.create_Facultad),
     path('api/escuela/create', views.create_Escuela),
     path('api/tipodocente/create', views.create_TipoDocente),
@@ -20,6 +21,7 @@ urlpatterns = [
     path('api/periodoacademico/create', views.create_PeriodoAcademico),
     # URLS GET OR RETRIEVE
     path('api/universidad', views.getAllUniversidad),
+    path('api/campus', views.getAllCampus),
     path('api/facultad', views.getAllFacultad),
     path('api/escuela', views.getAllEscuela),
     path('api/tipodocente', views.getAllTipoDocente),

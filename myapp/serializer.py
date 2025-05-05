@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Universidad, Facultad, Escuela, TipoDocente, CategoriaDocente, Docente, PeriodoAcademico, asignacionDocente
+from .models import Universidad,Campus, Facultad, Escuela, TipoDocente, CategoriaDocente, Docente, PeriodoAcademico, AsignacionDocente
 
 class UserSerializer(serializers.ModelSerializer):
     groups = serializers.StringRelatedField(many=True)
@@ -12,82 +12,236 @@ class UserSerializer(serializers.ModelSerializer):
 class UniversidadSerializer(serializers.ModelSerializer):
     class Meta:
         model = Universidad
-        fields = ['UniversidadCodigo', 'nombre', 'estado']
+        fields = [
+            'UniversidadID',
+            'UniversidadCodigo',
+            'UniversidadNombre',
+            'UniversidadDireccion',
+            'UniversidadTelefono',
+            'UniversidadEmail',
+            'UniversidadSitioWeb',
+            'UniversidadRector',
+            'UniversidadFechaRegistro',
+            'UsuarioRegistro',
+            'UniversidadEstado',
+        ]
 
+class CampusSerializer(serializers.ModelSerializer):
+    Campus_UniversidadFK= serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
+    
+    class Meta:
+        model = Campus
+        fields = [
+            'CampusID',
+            'CampusCodigo',
+            'CampusNombre',
+            'CampusDireccion',
+            'CampusPais',
+            'CampusProvincia',
+            'CampusCiudad',
+            'CampusTelefono',
+            'CampusCorreoContacto',
+            'CampusFechaRegistro',
+            'UsuarioRegistro',
+            'CampusEstado',
+            'Campus_UniversidadFK',
+        ]
 # Facultad Serializer
 class FacultadSerializer(serializers.ModelSerializer):
-    UniversidadCodigo = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
+    Facultad_UniversidadFK = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
+    Facultad_CampusFK = serializers.PrimaryKeyRelatedField(queryset=Campus.objects.all())
+    universidadNombre = serializers.CharField(
+        source='Facultad_UniversidadFK.UniversidadNombre', read_only=True
+    )
+    campusNombre = serializers.CharField(
+        source='Facultad_CampusFK.CampusNombre', read_only=True
+    )
 
     class Meta:
         model = Facultad
-        fields = ['facultadCodigo', 'nombre', 'estado', 'UniversidadCodigo']
+        fields = [
+            'FacultadID',
+            'FacultadCodigo',
+            'FacultadNombre',
+            'FacultadDecano',
+            'FacultadDireccion',
+            'FacultadTelefono',
+            'FacultadEmail',
+            'FacultadFechaRegistro',
+            'UsuarioRegistro',
+            'FacultadEstado',
+            'Facultad_UniversidadFK',
+            'Facultad_CampusFK',
+            "universidadNombre",  
+            "campusNombre",
+        ]
 
 # Escuela Serializer
 class EscuelaSerializer(serializers.ModelSerializer):
-    UniversidadCodigo = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
-    facultadCodigo = serializers.PrimaryKeyRelatedField(queryset=Facultad.objects.all()) 
+    Escuela_UniversidadFK = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
+    Escuela_facultadFK = serializers.PrimaryKeyRelatedField(queryset=Facultad.objects.all()) 
+
+    universidadNombre = serializers.CharField(source='Escuela_UniversidadFK.UniversidadNombre', read_only=True)
+    facultadNombre = serializers.CharField(source='Escuela_facultadFK.FacultadNombre', read_only=True)
 
     class Meta:
         model = Escuela
-        fields = ['escuelaCodigo', 'nombre', 'estado', 'UniversidadCodigo', 'facultadCodigo']
+        fields = [
+            'EscuelaId',
+            'EscuelaCodigo',
+            'EscuelaNombre',
+            'EscuelaDirectora',
+            'EscuelaTelefono',
+            'EscuelaCorreo',
+            'EscuelaFechaRegistro',
+            'UsuarioRegistro',
+            'EscuelaEstado',
+            'Escuela_UniversidadFK',
+            'Escuela_facultadFK',
+            'universidadNombre',
+            'facultadNombre',
+        ]
 
-# TipoDocente Serializer
+
+# TipoDocente Serializer Pediente 
 class TipoDocenteSerializer(serializers.ModelSerializer):
-    UniversidadCodigo = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
+    TipoDocente_UniversidadFK = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
+    universidadNombre = serializers.CharField(source='TipoDocente_UniversidadFK.UniversidadNombre', read_only=True)
 
     class Meta:
         model = TipoDocente
-        fields = ['tipoDocenteCodigo', 'nombre', 'estado', 'UniversidadCodigo']
+        fields = [
+            'TipoDocenteID',
+            'TipoDocenteCodigo',
+            'TipoDocenteDescripcion',
+            'TipoDocenteEstado',
+            'TipoFechaRegistro',
+            'UsuarioRegistro',
+            'TipoDocente_UniversidadFK',
+            'universidadNombre',
+        ]
 
 # CategoriaDocente Serializer
 class CategoriaDocenteSerializer(serializers.ModelSerializer):
-    UniversidadCodigo = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
+    Categoria_UniversidadFK = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
+    universidadNombre = serializers.CharField(source='Categoria_UniversidadFK.UniversidadNombre', read_only=True)
 
     class Meta:
         model = CategoriaDocente
-        fields = ['categoriaCodigo', 'nombre', 'estado', 'UniversidadCodigo']
+        fields = [
+            'CategoriaID',
+            'categoriaCodigo',
+            'CategoriaNombre',
+            'CategoriaEstado',
+            'CategoriaFechaRegistro',
+            'UsuarioRegistro',
+            'Categoria_UniversidadFK',
+            'universidadNombre',
+        ]
 
 # Docente Serializer
 class DocenteSerializer(serializers.ModelSerializer):
-    UniversidadCodigo = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
-    facultadCodigo = serializers.PrimaryKeyRelatedField(queryset=Facultad.objects.all())
-    escuelaCodigo = serializers.PrimaryKeyRelatedField(queryset=Escuela.objects.all())
-    tipoDocenteCodigo = serializers.PrimaryKeyRelatedField(queryset=TipoDocente.objects.all())
-    categoriaCodigo = serializers.PrimaryKeyRelatedField(queryset=CategoriaDocente.objects.all())
+    Docente_UniversidadFK = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
+    Docente_TipoDocenteFK = serializers.PrimaryKeyRelatedField(queryset=TipoDocente.objects.all())
+    Docente_CategoriaDocenteFK = serializers.PrimaryKeyRelatedField(queryset=CategoriaDocente.objects.all())
+
+    universidadNombre = serializers.CharField(source='Docente_UniversidadFK.UniversidadNombre', read_only=True)
+    tipoDocenteNombre = serializers.CharField(source='Docente_TipoDocenteFK.TipoDocenteDescripcion', read_only=True)
+    categoriaDocenteNombre = serializers.CharField(source='Docente_CategoriaDocenteFK.CategoriaNombre', read_only=True)
 
     class Meta:
         model = Docente
         fields = [
-            'Docentecodigo', 'nombre', 'apellidos', 'sexo', 'estado_civil', 'fecha_nacimiento', 'telefono', 
-            'direccion', 'estado', 'UniversidadCodigo', 'facultadCodigo', 'escuelaCodigo', 'tipoDocenteCodigo', 
-            'categoriaCodigo'
+            'DocenteID',
+            'DocenteCodigo',
+            'DocenteNombre',
+            'DocenteApellido',
+            'DocenteSexo',
+            'DocenteEstadoCivil',
+            'DocenteFechaNacimiento',
+            'DocenteLugarNacimiento',
+            'DocenteFechaIngreso',
+            'DocenteNacionalidad',
+            'DocenteTipoIdentificacion',
+            'DocenteNumeroIdentificacion',
+            'DocenteTelefono',
+            'DocenteCorreoElectronico',
+            'DocenteDireccion',
+            'DocenteEstado',
+            'DocenteObservaciones',
+            'DocenteFechaRegistro',
+            'UsuarioRegistro',
+            'Docente_UniversidadFK',
+            'Docente_TipoDocenteFK',
+            'Docente_CategoriaDocenteFK',
+            'universidadNombre',
+            'tipoDocenteNombre',
+            'categoriaDocenteNombre',
         ]
+
 
 # PeriodoAcademico Serializer
 class PeriodoAcademicoSerializer(serializers.ModelSerializer):
-    UniversidadCodigo = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
+    Periodo_UniversidadFK = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
+
+
+    universidadNombre = serializers.CharField(source='Periodo_UniversidadFK.UniversidadNombre', read_only=True)
 
     class Meta:
         model = PeriodoAcademico
-        fields = ['periodoAcademicoCodigo', 'nombre', 'estado', 'UniversidadCodigo']
+        fields = [
+            'PeriodoID',
+            'PeriodoCodigo',
+            'PeriodoNombre',
+            'PeriodoTipo',
+            'PeriodoAnio',
+            'PeriodoFechaInicio',
+            'PeriodoFechaFin',
+            'PeriodoFechaRegistro',
+            'UsuarioRegistro',
+            'PeriodoEstado',
+            'Periodo_UniversidadFK',
+            'universidadNombre'
+        ]
 
-class asignacionDocenteSerializer(serializers.ModelSerializer):
-    facultadCodigo = serializers.PrimaryKeyRelatedField(queryset=Facultad.objects.all())
-    escuelaCodigo = serializers.PrimaryKeyRelatedField(queryset=Escuela.objects.all())
-    DocenteCodigo = serializers.PrimaryKeyRelatedField(queryset=Docente.objects.all())
+class AsignacionDocenteSerializer(serializers.ModelSerializer):
+    docenteFk = serializers.PrimaryKeyRelatedField(queryset=Docente.objects.all())
+    campusFk = serializers.PrimaryKeyRelatedField(queryset=Campus.objects.all())
+    universidadFk = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
+    facultadFk = serializers.PrimaryKeyRelatedField(queryset=Facultad.objects.all())
+    escuelaFk = serializers.PrimaryKeyRelatedField(queryset=Escuela.objects.all())
+    periodoFk = serializers.PrimaryKeyRelatedField(queryset=PeriodoAcademico.objects.all())
+
+    docenteNombre = serializers.SerializerMethodField()
+    campusNombre = serializers.CharField(source="campusFk.CampusNombre", read_only=True)
+    universidadNombre = serializers.CharField(source="universidadFk.UniversidadNombre", read_only=True)
+    facultadNombre = serializers.CharField(source="facultadFk.FacultadNombre", read_only=True)
+    escuelaNombre = serializers.CharField(source="escuelaFk.EscuelaNombre", read_only=True)
+    periodoNombre = serializers.CharField(source="periodoFk.PeriodoNombre", read_only=True)
+
+    def get_docenteNombre(self, obj):
+        return f"{obj.docenteFk.nombre} {obj.docenteFk.apellidos}"
 
     class Meta:
-        model = asignacionDocente
-        fields = ['ADIDcodigo','nrc', 'clave', 'asignatura', 'codigo', 'seccion', 'modalidad', 'campus', 'tipo', 'cupo', 'inscripto', 'horario','dias', 'Aula', 'creditos', 'facultadCodigo', 'escuelaCodigo', 'DocenteCodigo', 'period']
+        model = AsignacionDocente
+        fields = [
+            'AsignacionID', 'nrc', 'clave', 'nombre', 'codigo', 'seccion',
+            'modalidad', 'cupo', 'inscripto', 'horario', 'dias', 'aula',
+            'creditos', 'tipo', 'accion', 'fecha_registro', 'usuario_registro',
 
+            'docenteFk', 'campusFk', 'universidadFk', 'facultadFk', 'escuelaFk', 'periodoFk',
 
-class asignacionDocenteSerializer_frontend(serializers.ModelSerializer):
+            'docenteNombre', 'campusNombre', 'universidadNombre',
+            'facultadNombre', 'escuelaNombre', 'periodoNombre'
+        ]
+
+class AsignacionDocenteSerializer_frontend(serializers.ModelSerializer):
     facultadCodigo = serializers.CharField(source='facultadCodigo.nombre')
     escuelaCodigo = serializers.CharField(source='escuelaCodigo.nombre')
     docente_nombre_completo = serializers.SerializerMethodField()
 
     class Meta:
-        model = asignacionDocente
+        model = AsignacionDocente
         fields = ['ADIDcodigo', 'nrc', 'clave', 'asignatura', 'codigo', 'seccion', 'modalidad', 
                   'campus', 'tipo', 'cupo', 'inscripto', 'horario', 'dias', 'Aula', 'creditos', 
                   'facultadCodigo', 'escuelaCodigo', 'docente_nombre_completo', 'period']

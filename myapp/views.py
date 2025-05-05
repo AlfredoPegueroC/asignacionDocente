@@ -3,25 +3,27 @@ from django.shortcuts import render, HttpResponse
 from django.http import JsonResponse
 from .serializer import (
   UniversidadSerializer, 
+  CampusSerializer,
   FacultadSerializer, 
   EscuelaSerializer,
   TipoDocenteSerializer,
   CategoriaDocenteSerializer,
   DocenteSerializer,
   PeriodoAcademicoSerializer,
-  asignacionDocenteSerializer,
-  asignacionDocenteSerializer_frontend,
+  AsignacionDocenteSerializer,
+  AsignacionDocenteSerializer_frontend,
   UserSerializer
 )
 from .models import (
     Universidad, 
+    Campus,
     Facultad, 
     Escuela,  
     TipoDocente,
     CategoriaDocente, 
     Docente, 
     PeriodoAcademico,
-    asignacionDocente
+    AsignacionDocente
     )
 from .handles import createHandle, getAllHandle, deleteHandler,getAllHandle_asignacion, getAll
 from django.views.decorators.csrf import csrf_exempt
@@ -50,7 +52,7 @@ class UserListView(APIView):
             serializer = UserSerializer(users, many=True)
             return Response(serializer.data)
         except Exception as e:
-            return Response({'error': str(e)}, status=500)
+            return Response({'error': str(e)}, status=500) 
 
 # HERE IS ALL THE ENDPOINTS OF THE API
 
@@ -58,7 +60,11 @@ class UserListView(APIView):
 
 @api_view(['POST'])
 def create_Universidad(request):
-  return  createHandle(request, UniversidadSerializer)
+  return createHandle(request, UniversidadSerializer)
+
+@api_view(['POST'])
+def create_Campus(request):
+  return createHandle(request, CampusSerializer)
 
 @api_view(['POST'])
 def create_Facultad(request):
@@ -92,6 +98,10 @@ def getAllUniversidad(request):
   return getAllHandle(request, Universidad, UniversidadSerializer)
 
 @api_view(['GET'])
+def getAllCampus(request):
+    return getAllHandle(request, Campus, CampusSerializer)
+
+@api_view(['GET'])
 def getAllFacultad(request):
   return getAllHandle(request, Facultad, FacultadSerializer)
 
@@ -117,11 +127,11 @@ def getAllPeriodoAcademico(request):
 
 @api_view(['GET'])
 def getAllAsignacion(request):
-  return getAllHandle_asignacion(request, asignacionDocente, asignacionDocenteSerializer)
+  return getAllHandle_asignacion(request, AsignacionDocente, AsignacionDocenteSerializer)
 
 @api_view(['GET'])
 def getAllAsignacion_frontend(request):
-  return getAllHandle_asignacion(request,asignacionDocente,asignacionDocenteSerializer_frontend)
+  return getAllHandle_asignacion(request,AsignacionDocente,AsignacionDocenteSerializer_frontend)
 
 
 
@@ -249,8 +259,8 @@ def update_periodoAcademico(request, pk):
 @api_view(['PUT', 'PATCH'])
 def update_asignacion(request, pk):
     try:
-        asignacion = asignacionDocente.objects.get(pk=pk)
-    except asignacionDocente.DoesNotExist:
+        asignacion = AsignacionDocente.objects.get(pk=pk)
+    except AsignacionDocente.DoesNotExist:
         return JsonResponse({'error': "Asignacion Docente No encontrada"}, status=status.HTTP_404_NOT_FOUND)
 
     if request.method in ['PUT', 'PATCH']:
@@ -258,7 +268,7 @@ def update_asignacion(request, pk):
         request_data = request.data.copy()
         request_data.pop('docente_nombre_completo', None)  # Remove 'docente_nombre_completo' if it exists
 
-        ser = asignacionDocenteSerializer(asignacion, data=request_data, partial=(request.method == 'PATCH'))
+        ser = AsignacionDocenteSerializer(asignacion, data=request_data, partial=(request.method == 'PATCH'))
 
         if ser.is_valid():
             ser.save()
@@ -335,10 +345,10 @@ def delete_periodoAcademico(request, pk):
 @api_view(['DELETE'])
 def delete_asignacionDocente(request, pk):
     try:
-        asignacion = asignacionDocente.objects.get(pk=pk)
+        asignacion = AsignacionDocente.objects.get(pk=pk)
         asignacion.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-    except asignacionDocente.DoesNotExist:
+    except AsignacionDocente.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
 
 @api_view(['DELETE'])
@@ -346,7 +356,7 @@ def delete_asignacion_by_period(request):
     period = request.GET.get('period')
     if not period:
         return Response({"error": "Missing period"}, status=status.HTTP_400_BAD_REQUEST)
-    deleted_count, _ = asignacionDocente.objects.filter(period=period).delete()
+    deleted_count, _ = AsignacionDocente.objects.filter(period=period).delete()
     
     if deleted_count == 0:
         return Response({"error": "No records found"}, status=status.HTTP_404_NOT_FOUND)
@@ -422,10 +432,10 @@ def details_periodoAcademico(request, pk):
 
 @api_view(['GET'])
 def details_Asignacion(request, pk):
-    asignacion = asignacionDocente.objects.filter(pk=pk).first()
+    asignacion = AsignacionDocente.objects.filter(pk=pk).first()
     if asignacion is None:
         return Response({'error': 'Periodo academico not found'}, status=status.HTTP_404_NOT_FOUND)
-    serializer = asignacionDocenteSerializer(asignacion)
+    serializer = AsignacionDocenteSerializer(asignacion)
 
     return Response(serializer.data, status=status.HTTP_200_OK)
 #endregion
@@ -476,96 +486,122 @@ def logout_view(request):
 
 #region export
 
+
 @api_view(["GET"])
 def UniversidadExport(request):
-  queryset = Universidad.objects.all()
-  data = []
+    queryset = Universidad.objects.all()
+    data = []
 
-  for universidad in queryset:
-    data.append({
-      'Nombre': universidad.nombre,
-      'Estado': universidad.estado
-    })
+    for universidad in queryset:
+        data.append({
+            'Código': universidad.UniversidadCodigo,
+            'Nombre': universidad.UniversidadNombre,
+            'Dirección': universidad.UniversidadDireccion,
+            'Teléfono': universidad.UniversidadTelefono,
+            'Email': universidad.UniversidadEmail,
+            'Sitio Web': universidad.UniversidadSitioWeb,
+            'Rector': universidad.UniversidadRector,
+        })
 
-  response = HttpResponse(content_type='application/vnd.ms-excel')
-  response['Content-Disposition'] = 'attachment; filename="universidad_data.xlsx"'
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="universidades.xlsx"'
 
-  # pds is a data analysis library for python
-  with pd.ExcelWriter(response, engine='openpyxl') as writer:
-        pd.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
+    with pd.ExcelWriter(response, engine='openpyxl') as writer:
+        pd.DataFrame(data).to_excel(writer, sheet_name='Universidades', index=False)
 
-  return response
+    return response
 
 @api_view(["GET"])
 def FacultadExport(request):
-  queryset = Facultad.objects.all()
-  data = []
+    queryset = Facultad.objects.select_related("Facultad_UniversidadFK").all()
+    data = []
 
-  for facultad in queryset:
-    data.append({
-      'Nombre': facultad.nombre,
-      'Estado': facultad.estado,
-      'Universidad': facultad.UniversidadCodigo.nombre
+    for facultad in queryset:
+        data.append({
+            "Código": facultad.FacultadCodigo,
+            "Nombre": facultad.FacultadNombre,
+            "Decano": facultad.FacultadDecano,
+            "Teléfono": facultad.FacultadTelefono,
+            "Estado": facultad.FacultadEstado,
+            "Universidad": facultad.Facultad_UniversidadFK.UniversidadNombre if facultad.Facultad_UniversidadFK else "—",
+            "Dirección": facultad.FacultadDireccion,
+        })
 
-    })
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="facultades.xlsx"'
 
-  response = HttpResponse(content_type='application/vnd.ms-excel')
-  response['Content-Disposition'] = 'attachment; filename="facultad_data.xlsx"'
+    with pd.ExcelWriter(response, engine='openpyxl') as writer:
+        pd.DataFrame(data).to_excel(writer, sheet_name='Facultades', index=False)
 
-  with pd.ExcelWriter(response, engine='openpyxl') as writer:
-    pd.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
+    return response
 
-  return response
 
 @api_view(["GET"])
 def EscuelaExport(request):
-  queryset = Escuela.objects.all()
-  data = []
+    queryset = Escuela.objects.select_related("Escuela_UniversidadFK", "Escuela_facultadFK").all()
+    data = []
 
-  for escuela in queryset:
-    data.append({
-      'Nombre': escuela.nombre,
-      'Estado': escuela.estado,
-      'Universidad': escuela.UniversidadCodigo.nombre,
-      'Facultad': escuela.facultadCodigo.nombre
-    })
+    for escuela in queryset:
+        data.append({
+            'Código': escuela.EscuelaCodigo,
+            'Nombre': escuela.EscuelaNombre,
+            'Directora': escuela.EscuelaDirectora,
+            'Teléfono': escuela.EscuelaTelefono,
+            'Correo': escuela.EscuelaCorreo,
+            'Estado': escuela.EscuelaEstado,
+            'Universidad': escuela.Escuela_UniversidadFK.UniversidadNombre if escuela.Escuela_UniversidadFK else "—",
+            'Facultad': escuela.Escuela_facultadFK.FacultadNombre if escuela.Escuela_facultadFK else "—",
+        })
 
-  response = HttpResponse(content_type='application/vnd.ms-excel')
-  response['Content-Disposition'] = 'attachment; filename="escuela_data.xlsx"'
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="escuelas.xlsx"'
 
-  with pd.ExcelWriter(response, engine='openpyxl') as writer:
-    pd.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
+    with pd.ExcelWriter(response, engine='openpyxl') as writer:
+        pd.DataFrame(data).to_excel(writer, sheet_name='Escuelas', index=False)
 
-  return response
+    return response
 
+@api_view(["GET"])
 def DocenteExport(request):
-  queryset = Docente.objects.all()
-  data = []
+    queryset = Docente.objects.select_related(
+        "Docente_UniversidadFK", 
+        "Docente_TipoDocenteFK", 
+        "Docente_CategoriaDocenteFK"
+    ).all()
 
-  for docente in queryset:
-    data.append({
-      'Nombre': docente.nombre,
-      'Apellidos': docente.apellidos,
-      'Sexo': docente.sexo,
-      'Estado Civil': docente.estado_civil,
-      'Fecha de nacimiento': docente.fecha_nacimiento,
-      'Telefono': docente.telefono,
-      'Direccion': docente.direccion,
-      'Estado': docente.estado,
-      'Universidad': docente.UniversidadCodigo.nombre,
-      'Facultad': docente.facultadCodigo.nombre,
-      'Escuela': docente.escuelaCodigo.nombre,
-      'Tipo de docente': docente.tipoDocenteCodigo.nombre,
-      'Categoria docente': docente.categoriaCodigo.nombre,
-    })
+    data = []
 
-  response = HttpResponse(content_type='application/vnd.ms-excel')
-  response['Content-Disposition'] = 'attachment; filename="Docente_data.xlsx"'
+    for d in queryset:
+        data.append({
+            "Código": d.DocenteCodigo,
+            "Nombre": d.DocenteNombre,
+            "Apellido": d.DocenteApellido,
+            "Sexo": d.DocenteSexo,
+            "Estado Civil": d.DocenteEstadoCivil,
+            "Fecha Nacimiento": d.DocenteFechaNacimiento,
+            "Lugar Nacimiento": d.DocenteLugarNacimiento,
+            "Fecha Ingreso": d.DocenteFechaIngreso,
+            "Nacionalidad": d.DocenteNacionalidad,
+            "Tipo ID": d.DocenteTipoIdentificacion,
+            "Número ID": d.DocenteNumeroIdentificacion,
+            "Teléfono": d.DocenteTelefono,
+            "Correo": d.DocenteCorreoElectronico,
+            "Dirección": d.DocenteDireccion,
+            "Estado": d.DocenteEstado,
+            "Observaciones": d.DocenteObservaciones,
+            "Usuario Registro": d.UsuarioRegistro,
+            "Universidad": d.Docente_UniversidadFK.UniversidadNombre if d.Docente_UniversidadFK else "",
+            "Tipo Docente": d.Docente_TipoDocenteFK.TipoDocenteDescripcion if d.Docente_TipoDocenteFK else "",
+            "Categoría Docente": d.Docente_CategoriaDocenteFK.CategoriaNombre if d.Docente_CategoriaDocenteFK else "",
+        })
 
-  with pd.ExcelWriter(response, engine='openpyxl') as writer:
-    pd.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
+    response = HttpResponse(content_type='application/vnd.ms-excel')
+    response['Content-Disposition'] = 'attachment; filename="docente_data.xlsx"'
 
-  return response
+    with pd.ExcelWriter(response, engine='openpyxl') as writer:
+        pd.DataFrame(data).to_excel(writer, sheet_name='Docentes', index=False)
+
+    return response
 
 @api_view(["GET"])
 def CategoriaDocenteExport(request):
@@ -635,7 +671,7 @@ def asignacionDocenteExport(request):
     period = request.GET.get("period")
 
     # Filter by period if provided
-    queryset = asignacionDocente.objects.select_related("facultadCodigo", "escuelaCodigo", "DocenteCodigo")
+    queryset = AsignacionDocente.objects.select_related("facultadCodigo", "escuelaCodigo", "DocenteCodigo")
     if period:
         queryset = queryset.filter(period=period)
 
@@ -936,7 +972,7 @@ class ImportAsignacion(APIView):
                         continue
 
                     # Check for duplicate record
-                    existing_record = asignacionDocente.objects.filter(
+                    existing_record = AsignacionDocente.objects.filter(
                         nrc=row["NRC"],
                         clave=row["Clave"],
                         codigo=row["Codigo"],
@@ -949,7 +985,7 @@ class ImportAsignacion(APIView):
 
                     # Prepare the record for bulk creation
                     records_to_create.append(
-                        asignacionDocente(
+                        AsignacionDocente(
                             nrc=row["NRC"],
                             clave=row["Clave"],
                             asignatura=row["Asignatura"],
@@ -986,7 +1022,7 @@ class ImportAsignacion(APIView):
             # Perform a bulk create of all records if there are any valid records to create
             if records_to_create:
                 with transaction.atomic():
-                    asignacionDocente.objects.bulk_create(records_to_create)
+                    AsignacionDocente.objects.bulk_create(records_to_create)
 
             response_data = {
                 "message": f"Se han importado {len(records_to_create)} registros.",
@@ -1000,7 +1036,6 @@ class ImportAsignacion(APIView):
                 {"error": f"An error occurred: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-
 
 class ImportUniversidad(APIView):
     parser_classes = [MultiPartParser, FormParser]
@@ -1157,7 +1192,7 @@ def copiar_asignaciones(request):
         return Response({"error": "Parámetros inválidos"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        asignaciones_origen = asignacionDocente.objects.filter(period=from_period)
+        asignaciones_origen = AsignacionDocente.objects.filter(period=from_period)
         cantidad_origen = asignaciones_origen.count()
 
         if cantidad_origen == 0:
@@ -1168,7 +1203,7 @@ def copiar_asignaciones(request):
         nuevas_asignaciones = []
 
         for a in asignaciones_origen:
-            nuevas_asignaciones.append(asignacionDocente(
+            nuevas_asignaciones.append(AsignacionDocente(
                 nrc=a.nrc,
                 clave=a.clave,
                 asignatura=a.asignatura,
@@ -1189,7 +1224,7 @@ def copiar_asignaciones(request):
                 period=to_period  # ✅ corregido aquí
             ))
 
-        asignacionDocente.objects.bulk_create(nuevas_asignaciones)
+        AsignacionDocente.objects.bulk_create(nuevas_asignaciones)
 
         return Response({
             "message": f"{len(nuevas_asignaciones)} asignaciones copiadas de {from_period} a {to_period}"

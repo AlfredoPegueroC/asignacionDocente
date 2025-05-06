@@ -99,10 +99,11 @@ DATABASES = {
         'NAME': 'railway',
         'USER': 'postgres',
         'PASSWORD': 'ZryVWqPiQVMGwHQOLTIwAlMNUbRZxWZr',
-        'HOST': 'switchback.proxy.rlwy.net',
-        'PORT': '5432',  
+        'HOST': 'yamanote.proxy.rlwy.net',
+        'PORT': '56370',  
     }
 }
+
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.sqlite3',

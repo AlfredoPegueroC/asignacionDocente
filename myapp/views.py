@@ -443,25 +443,24 @@ def details_Asignacion(request, pk):
 #region Auth
 @api_view(['POST'])
 def login_view(request):
-    # Retrieve username and password from request data
     username = request.data.get('username')
     password = request.data.get('password')
 
     if not username or not password:
         return Response({'error': 'Username and password are required'}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Authenticate the user
     user = authenticate(username=username, password=password)
     if user is not None:
-        # Generate tokens
         refresh = RefreshToken.for_user(user)
+        user_data = UserSerializer(user).data  
+
         return Response({
             'refresh': str(refresh),
             'access': str(refresh.access_token),
+            'user': user_data
         }, status=status.HTTP_200_OK)
-    
-    return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
+    return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
 @api_view(['POST'])
 def logout_view(request):

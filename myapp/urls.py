@@ -19,6 +19,7 @@ urlpatterns = [
     path('api/categoriadocente/create', views.create_CategoriaDocente),
     path('api/docente/create', views.create_Docente),
     path('api/periodoacademico/create', views.create_PeriodoAcademico),
+    path('api/asignacion/create', views.create_asignacion),
     # URLS GET OR RETRIEVE
     path('api/universidad', views.getAllUniversidad),
     path('api/campus', views.getAllCampus),

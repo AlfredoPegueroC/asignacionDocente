@@ -212,16 +212,14 @@ class AsignacionDocenteSerializer(serializers.ModelSerializer):
     escuelaFk = serializers.PrimaryKeyRelatedField(queryset=Escuela.objects.all())
     periodoFk = serializers.PrimaryKeyRelatedField(queryset=PeriodoAcademico.objects.all())
 
-    docenteNombre = serializers.SerializerMethodField()
+    docenteNombre = serializers.CharField(source="docenteFk.get_nombre_completo", read_only=True)
     campusNombre = serializers.CharField(source="campusFk.CampusNombre", read_only=True)
     universidadNombre = serializers.CharField(source="universidadFk.UniversidadNombre", read_only=True)
     facultadNombre = serializers.CharField(source="facultadFk.FacultadNombre", read_only=True)
     escuelaNombre = serializers.CharField(source="escuelaFk.EscuelaNombre", read_only=True)
     periodoNombre = serializers.CharField(source="periodoFk.PeriodoNombre", read_only=True)
-
-    def get_docenteNombre(self, obj):
-        return f"{obj.docenteFk.nombre} {obj.docenteFk.apellidos}"
-
+    
+   
     class Meta:
         model = AsignacionDocente
         fields = [

@@ -188,6 +188,10 @@ class Docente(models.Model):
 
     def __str__(self):
         return f"{self.DocenteNombre} {self.DocenteApellido}"
+    
+    @property
+    def get_nombre_completo(self):
+        return f"{self.DocenteNombre} {self.DocenteApellido}"
 
     class Meta:
         unique_together = ('DocenteNumeroIdentificacion', 'Docente_UniversidadFK')
@@ -242,7 +246,7 @@ class AsignacionDocente(models.Model):
     accion = models.CharField(max_length=50, blank=True, null=True)
     fecha_registro = models.DateTimeField(auto_now_add=True)
     fecha_modificacion = models.DateTimeField(auto_now=True)
-    usuario_registro = models.CharField(max_length=50, blank=True, null=True)
+    usuario_registro = models.CharField(max_length=50, blank=True, null=True, default='admin')
 
     # Foreign keys
     docenteFk = models.ForeignKey(Docente, on_delete=models.CASCADE)

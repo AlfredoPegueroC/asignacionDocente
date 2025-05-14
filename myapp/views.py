@@ -667,16 +667,19 @@ def PeriodoAcademicoExport(request):
 
 
 
-
 @api_view(["GET"])
 def asignacionDocenteExport(request):
-    # Get the period from request
+    # Obtener el periodo desde la solicitud
     period = request.GET.get("period")
 
-    # Filter by period if provided
-    queryset = AsignacionDocente.objects.select_related("facultadCodigo", "escuelaCodigo", "DocenteCodigo")
+    # Obtener datos relacionados
+    queryset = AsignacionDocente.objects.select_related(
+        "facultadFk", "escuelaFk", "docenteFk", "campusFk"
+    )
+
+    # Filtrar por periodo si se proporciona
     if period:
-        queryset = queryset.filter(period=period)
+        queryset = queryset.filter(periodoFk__PeriodoNombre=period)
 
     data = []
 
@@ -684,26 +687,27 @@ def asignacionDocenteExport(request):
         data.append({
             "NRC": asignacion.nrc,
             "Clave": asignacion.clave,
-            "Asignatura": asignacion.asignatura,
+            "Asignatura": asignacion.nombre,
             "Codigo": asignacion.codigo,
-            "Profesor": f"{asignacion.DocenteCodigo.nombre} {asignacion.DocenteCodigo.apellidos}" if asignacion.DocenteCodigo else None,
+            "Profesor": f"{asignacion.docenteFk.DocenteNombre} {asignacion.docenteFk.DocenteApellido}" if asignacion.docenteFk else None,
             "Seccion": asignacion.seccion,
             "Modalidad": asignacion.modalidad,
-            "Campus": asignacion.campus,
-            "Facultad": asignacion.facultadCodigo.nombre if asignacion.facultadCodigo else None,
-            "Escuela": asignacion.escuelaCodigo.nombre if asignacion.escuelaCodigo else None,
+            "Campus": asignacion.campusFk.CampusNombre if asignacion.campusFk else None,
+            "Facultad": asignacion.facultadFk.FacultadNombre if asignacion.facultadFk else None,
+            "Escuela": asignacion.escuelaFk.EscuelaNombre if asignacion.escuelaFk else None,
             "Tipo": asignacion.tipo,
             "Cupo": asignacion.cupo,
             "Inscripto": asignacion.inscripto,
             "Horario": asignacion.horario,
             "Dias": asignacion.dias,
-            "Aula": asignacion.Aula,
+            "Aula": asignacion.aula,
             "Creditos": asignacion.creditos,
         })
 
-    # Create Excel response
+    # Crear respuesta en Excel
     response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    response["Content-Disposition"] = f'attachment; filename="Asignacion_{period if period else "all"}.xlsx"'
+    filename = f'Asignacion_{period if period else "todos"}.xlsx'
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
     with pd.ExcelWriter(response, engine="openpyxl") as writer:
         pd.DataFrame(data).to_excel(writer, sheet_name="Sheet1", index=False)

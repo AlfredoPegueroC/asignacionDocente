@@ -243,7 +243,7 @@ class AsignacionDocente(models.Model):
     aula = models.CharField(max_length=50, blank=True, null=True)
     creditos = models.DecimalField(max_digits=4, decimal_places=2, blank=True, null=True)
     tipo = models.CharField(max_length=20, blank=True, null=True)
-    accion = models.CharField(max_length=50, blank=True, null=True)
+    accion = models.CharField(max_length=50, blank=True, null=True, default='nuevo')
     fecha_registro = models.DateTimeField(auto_now_add=True)
     fecha_modificacion = models.DateTimeField(auto_now=True)
     usuario_registro = models.CharField(max_length=50, blank=True, null=True, default='admin')

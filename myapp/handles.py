@@ -86,55 +86,54 @@ def getAll(request, modelData, serializer_class):
 
 def getAllHandle_asignacion(request, modelData, serializer_class):
     try:
-        # Fetch all objects
         queryset = modelData.objects.all()
 
-        # Search filter (optional)
+        # Search filter
         search_query = request.query_params.get('search', None)
         if search_query:
             query = Q()
-            # Loop over the fields of the model
             for field in modelData._meta.get_fields():
                 if hasattr(field, 'get_internal_type'):
                     field_type = field.get_internal_type()
-                    if field_type in ['CharField', 'TextField']:  # Only consider CharField and TextField
+                    if field_type in ['CharField', 'TextField']:
                         query |= Q(**{f"{field.name}__icontains": search_query})
-                    elif field_type == 'ForeignKey':  # Handle ForeignKey fields
+                    elif field_type == 'ForeignKey':
                         related_model = field.related_model
-                        # Search by related field's text fields (e.g., `nombre` or `apellidos` for `Docente`)
                         for related_field in related_model._meta.get_fields():
                             if hasattr(related_field, 'get_internal_type') and related_field.get_internal_type() in ['CharField', 'TextField']:
                                 query |= Q(**{f"{field.name}__{related_field.name}__icontains": search_query})
             queryset = queryset.filter(query)
 
-        # Filter by other query parameters (e.g., name, state)
+        # Filter by custom parameters
         filters = {}
         for key, value in request.query_params.items():
-            if hasattr(modelData, key):  # Ensure the filter key exists in the model
-                filters[f"{key}__icontains"] = value  # Case-insensitive contains filter
+            if key == "search" or key == "page" or key == "sort_by":
+                continue
+            elif key == "periodo":
+                # Traduce 'periodo' a 'periodoFk__PeriodoNombre'
+                filters["periodoFk__PeriodoNombre"] = value
+            else:
+                filters[key] = value  # permite filtros directos y anidados (campo__subcampo)
+
         if filters:
             queryset = queryset.filter(**filters)
 
-        # Sort by a field (default is "id")
+        # Sort
         sort_by = request.query_params.get('sort_by', 'ADIDcodigo')
-        if hasattr(modelData, sort_by.lstrip('-')):  # Ensure sort field exists in the model
+        if hasattr(modelData, sort_by.lstrip('-')):
             queryset = queryset.order_by(sort_by)
 
         # Pagination
         paginator = PageNumberPagination()
-        paginator.page_size = 30  # Default items per page
+        paginator.page_size = 30
         paginated_queryset = paginator.paginate_queryset(queryset, request)
 
-        # Serialize paginated data
         serializer = serializer_class(paginated_queryset, many=True)
-
-        # Return paginated response
         return paginator.get_paginated_response(serializer.data)
 
     except Exception as e:
-        # Handle exceptions (e.g., database errors)
         return Response(
-            {"error": str(e)}, 
+            {"error": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
         

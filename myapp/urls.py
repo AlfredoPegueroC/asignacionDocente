@@ -88,7 +88,8 @@ urlpatterns = [
     path('import/docente', views.ImportDocente.as_view()),
     path('import/universidad', views.ImportUniversidad.as_view()),
     path('import/categoriaDocente', views.ImportCategoriaDocente.as_view()),
-    path('import/tipoDocente', views.ImportTipoDocente.as_view())
+    path('import/tipoDocente', views.ImportTipoDocente.as_view()),
+    path('api/resumen/docente/', views.resumen_asignaciones_docente)
 
 ]
 

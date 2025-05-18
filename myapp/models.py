@@ -214,7 +214,8 @@ class PeriodoAcademico(models.Model):
     UsuarioRegistro = models.CharField(max_length=50, blank=True, null=True, default='admin')
     PeriodoEstado = models.CharField(
         max_length=15,
-        choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')]
+        choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')],
+        default='Activo'
     )
 
     # FOREIGNKEY
@@ -230,7 +231,7 @@ class PeriodoAcademico(models.Model):
         
 class AsignacionDocente(models.Model):
     AsignacionID = models.AutoField(primary_key=True)
-    nrc = models.CharField(max_length=10, unique=True)
+    nrc = models.CharField(max_length=10)  # 🔁 eliminamos unique=True
     clave = models.CharField(max_length=10)
     nombre = models.CharField(max_length=150, blank=True, null=True)
     codigo = models.CharField(max_length=10, blank=True, null=True)
@@ -256,6 +257,16 @@ class AsignacionDocente(models.Model):
     escuelaFk = models.ForeignKey(Escuela, on_delete=models.CASCADE)
     periodoFk = models.ForeignKey(PeriodoAcademico, on_delete=models.CASCADE)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['nrc', 'periodoFk'], name='unique_nrc_periodo')
+        ]
+        indexes = [
+            models.Index(fields=['nrc'], name='idx_asignacion_nrc'),
+            models.Index(fields=['periodoFk'], name='idx_asignacion_periodo'),
+            models.Index(fields=['docenteFk'], name='idx_asignacion_docente'),
+            models.Index(fields=['campusFk'], name='idx_asignacion_campus'),
+            models.Index(fields=['facultadFk'], name='idx_asignacion_facultad'),
+        ]
     def __str__(self):
         return f"{self.nrc} - {self.nombre}"
-

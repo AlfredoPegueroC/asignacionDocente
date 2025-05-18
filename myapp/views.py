@@ -38,6 +38,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+from django.db.models import Sum, Count
 from rest_framework_simplejwt.tokens import RefreshToken,TokenError
 import pandas as pd
 
@@ -1473,6 +1474,53 @@ class ImportTipoDocente(APIView):
             )
 #endregion
 
+@api_view(['GET'])
+def resumen_asignaciones_docente(request):
+    docente_id = request.query_params.get('docente')
+    periodo_nombre = request.query_params.get('periodo')
+
+    if not docente_id or not periodo_nombre:
+        return Response({"error": "Parámetros 'docente' y 'periodo' son requeridos"}, status=400)
+
+    try:
+        periodo = PeriodoAcademico.objects.filter(PeriodoNombre=periodo_nombre).first()
+        docente = Docente.objects.filter(pk=docente_id).first()
+
+        if not periodo or not docente:
+            return Response({
+                "docente": docente_id,
+                "periodo": periodo_nombre,
+                "total_creditos": 0,
+                "total_materias": 0,
+                "asignaturas": [],
+                "mensaje": "Periodo o docente no encontrado"
+            }, status=200)
+
+        asignaciones = AsignacionDocente.objects.filter(
+            docenteFk=docente,
+            periodoFk=periodo
+        )
+
+        resumen = asignaciones.aggregate(
+            total_creditos=Sum('creditos'),
+            total_materias=Count('AsignacionID')
+        )
+
+        nombres_asignaturas = list(asignaciones.values_list('nombre', flat=True))
+
+        return Response({
+            "docente": docente.get_nombre_completo,
+            "periodo": periodo.PeriodoNombre,
+            "total_creditos": resumen['total_creditos'] or 0,
+            "total_materias": resumen['total_materias'],
+            "asignaturas": nombres_asignaturas
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response({"error": str(e)}, status=500)
+    
 @api_view(['POST'])
 def copiar_asignaciones(request):
     from_period = request.data.get('from_period')
@@ -1482,42 +1530,70 @@ def copiar_asignaciones(request):
         return Response({"error": "Parámetros inválidos"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        asignaciones_origen = AsignacionDocente.objects.filter(period=from_period)
-        cantidad_origen = asignaciones_origen.count()
+        # Buscar los objetos de periodo
+        from_period_obj = PeriodoAcademico.objects.filter(PeriodoNombre=from_period).first()
+        to_period_obj = PeriodoAcademico.objects.filter(PeriodoNombre=to_period).first()
 
-        if cantidad_origen == 0:
+        if not from_period_obj or not to_period_obj:
+            return Response({"error": "Período no encontrado."}, status=404)
+
+        # Buscar asignaciones del período origen y ordenarlas por orden de creación
+        asignaciones_origen = AsignacionDocente.objects.filter(
+            periodoFk=from_period_obj
+        ).order_by('AsignacionID')
+
+        if not asignaciones_origen.exists():
             return Response({
-                "message": f"No hay asignaciones en el periodo {from_period}"
+                "message": f"No hay asignaciones en el período {from_period}"
             }, status=200)
+
+        # Verificar duplicados por nrc + periodoFk destino
+        nrc_existentes = set(
+            AsignacionDocente.objects
+            .filter(periodoFk=to_period_obj)
+            .values_list('nrc', flat=True)
+        )
 
         nuevas_asignaciones = []
 
         for a in asignaciones_origen:
+            if a.nrc in nrc_existentes:
+                continue  # evita duplicados solo dentro del periodo destino
+
             nuevas_asignaciones.append(AsignacionDocente(
                 nrc=a.nrc,
                 clave=a.clave,
-                asignatura=a.asignatura,
+                nombre=a.nombre,
                 codigo=a.codigo,
-                DocenteCodigo=a.DocenteCodigo,
                 seccion=a.seccion,
                 modalidad=a.modalidad,
-                campus=a.campus,
-                facultadCodigo=a.facultadCodigo,
-                escuelaCodigo=a.escuelaCodigo,
-                tipo=a.tipo,
                 cupo=a.cupo,
                 inscripto=a.inscripto,
                 horario=a.horario,
                 dias=a.dias,
-                Aula=a.Aula,
+                aula=a.aula,
                 creditos=a.creditos,
-                period=to_period  # ✅ corregido aquí
+                tipo=a.tipo,
+                accion='nuevo',
+                usuario_registro='admin',
+                docenteFk=a.docenteFk,
+                campusFk=a.campusFk,
+                universidadFk=a.universidadFk,
+                facultadFk=a.facultadFk,
+                escuelaFk=a.escuelaFk,
+                periodoFk=to_period_obj
             ))
 
+        if not nuevas_asignaciones:
+            return Response({
+                "message": f"Todas las asignaciones del período {from_period} ya existen en el período {to_period} y fueron omitidas."
+            }, status=200)
+
+        # Inserta manteniendo el orden
         AsignacionDocente.objects.bulk_create(nuevas_asignaciones)
 
         return Response({
-            "message": f"{len(nuevas_asignaciones)} asignaciones copiadas de {from_period} a {to_period}"
+            "message": f"{len(nuevas_asignaciones)} asignaciones copiadas exitosamente de {from_period} a {to_period}"
         }, status=201)
 
     except Exception as e:

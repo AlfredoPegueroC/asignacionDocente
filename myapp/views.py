@@ -1506,14 +1506,23 @@ def resumen_asignaciones_docente(request):
             total_materias=Count('AsignacionID')
         )
 
-        nombres_asignaturas = list(asignaciones.values_list('nombre', flat=True))
+        asignaturas_info = list(asignaciones.values(
+            'nrc', 'clave', 'codigo', 'nombre'
+        ))
+
+        # Obtenemos facultad y escuela desde la primera asignación (se asume que son las mismas para todas)
+        primera_asignacion = asignaciones.first()
+        facultad_nombre = primera_asignacion.facultadFk.FacultadNombre if primera_asignacion else ''
+        escuela_nombre = primera_asignacion.escuelaFk.EscuelaNombre if primera_asignacion else ''
 
         return Response({
             "docente": docente.get_nombre_completo,
             "periodo": periodo.PeriodoNombre,
             "total_creditos": resumen['total_creditos'] or 0,
             "total_materias": resumen['total_materias'],
-            "asignaturas": nombres_asignaturas
+            "facultad": facultad_nombre,
+            "escuela": escuela_nombre,
+            "asignaturas": asignaturas_info
         })
 
     except Exception as e:

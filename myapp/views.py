@@ -12,7 +12,8 @@ from .serializer import (
   PeriodoAcademicoSerializer,
   AsignacionDocenteSerializer,
   AsignacionDocenteSerializer_frontend,
-  UserSerializer
+  UserSerializer,
+  RegistroUsuarioSerializer
 )
 from .models import (
     Universidad, 
@@ -55,6 +56,27 @@ class UserListView(APIView):
             return Response(serializer.data)
         except Exception as e:
             return Response({'error': str(e)}, status=500) 
+
+class RegistroUsuarioAPI(APIView):
+    def post(self, request):
+        try:
+            serializer = RegistroUsuarioSerializer(data=request.data)
+            if serializer.is_valid():
+                user = serializer.save()
+                return Response({
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                    "is_staff": user.is_staff,
+                    "is_active": user.is_active,
+                    "groups": [group.name for group in user.groups.all()]
+                }, status=201)
+            return Response(serializer.errors, status=400)
+        except Exception as e:
+            print("❌ Error en el registro:", str(e))
+            return Response({'error': str(e)}, status=500)
 
 # HERE IS ALL THE ENDPOINTS OF THE API
 

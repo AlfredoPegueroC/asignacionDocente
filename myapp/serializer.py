@@ -1,12 +1,45 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Universidad,Campus, Facultad, Escuela, TipoDocente, CategoriaDocente, Docente, PeriodoAcademico, AsignacionDocente
+from django.contrib.auth.models import Group 
 
 class UserSerializer(serializers.ModelSerializer):
     groups = serializers.StringRelatedField(many=True)
     class Meta:
         model = User
         fields = ['id', 'username', 'email','first_name', 'last_name',  'is_staff', 'is_active','groups']
+
+class RegistroUsuarioSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+    is_staff = serializers.BooleanField(default=False)
+
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'first_name', 'last_name', 'password', 'is_staff']
+
+    def create(self, validated_data):
+        is_staff = validated_data.pop('is_staff', False)
+
+        user = User.objects.create_user(
+            username=validated_data['username'],
+            email=validated_data.get('email', ''),
+            password=validated_data['password'],
+            first_name=validated_data.get('first_name', ''),
+            last_name=validated_data.get('last_name', '')
+        )
+
+        # Marcar como staff y superuser si corresponde
+        if is_staff:
+            user.is_staff = True
+            user.is_superuser = True
+            grupo_admin, _ = Group.objects.get_or_create(name="admin")
+            user.groups.add(grupo_admin)
+        else:
+            grupo_usuario, _ = Group.objects.get_or_create(name="usuario")
+            user.groups.add(grupo_usuario)
+
+        user.save()
+        return user
 
 # Universidad Serializer
 class UniversidadSerializer(serializers.ModelSerializer):

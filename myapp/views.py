@@ -42,7 +42,7 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Sum, Count
 from rest_framework_simplejwt.tokens import RefreshToken,TokenError
 import pandas as pd
-
+from rest_framework.permissions import IsAuthenticated
 
 # Create your views here.
 def index(request):
@@ -77,6 +77,24 @@ class RegistroUsuarioAPI(APIView):
         except Exception as e:
             print("❌ Error en el registro:", str(e))
             return Response({'error': str(e)}, status=500)
+
+class EditarUsuarioAPI(APIView):
+    permission_classes = [IsAuthenticated] # opcional: solo admin puede editar
+
+    def patch(self, request, pk):
+        try:
+            user = User.objects.get(pk=pk)
+            serializer = RegistroUsuarioSerializer(user, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=200)
+            return Response(serializer.errors, status=400)
+        except User.DoesNotExist:
+            return Response({"error": "Usuario no encontrado"}, status=404)
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
+
+
 
 # HERE IS ALL THE ENDPOINTS OF THE API
 

@@ -13,7 +13,8 @@ from .serializer import (
   AsignacionDocenteSerializer,
   AsignacionDocenteSerializer_frontend,
   UserSerializer,
-  RegistroUsuarioSerializer
+  RegistroUsuarioSerializer,
+  APILogSerializer
 )
 from .models import (
     Universidad, 
@@ -24,7 +25,8 @@ from .models import (
     CategoriaDocente, 
     Docente, 
     PeriodoAcademico,
-    AsignacionDocente
+    AsignacionDocente,
+    APILog
     )
 from .handles import createHandle, getAllHandle, deleteHandler,getAllHandle_asignacion, getAll
 from django.views.decorators.csrf import csrf_exempt
@@ -43,10 +45,14 @@ from django.db.models import Sum, Count
 from rest_framework_simplejwt.tokens import RefreshToken,TokenError
 import pandas as pd
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.generics import ListAPIView
+from rest_framework.filters import SearchFilter
+from django.shortcuts import redirect
 
 # Create your views here.
 def index(request):
-  return render(request, 'client/index.html')
+    return redirect('/admin/')
 
 class UserListView(APIView):
     def get(self, request):
@@ -79,7 +85,7 @@ class RegistroUsuarioAPI(APIView):
             return Response({'error': str(e)}, status=500)
 
 class EditarUsuarioAPI(APIView):
-    permission_classes = [IsAuthenticated] # opcional: solo admin puede editar
+    # permission_classes = [IsAuthenticated] # opcional: solo admin puede editar
 
     def patch(self, request, pk):
         try:
@@ -94,7 +100,16 @@ class EditarUsuarioAPI(APIView):
         except Exception as e:
             return Response({'error': str(e)}, status=500)
 
+class LogPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
 
+class APILogList(ListAPIView):
+    queryset = APILog.objects.all().order_by('-timestamp')
+    serializer_class = APILogSerializer
+    pagination_class = LogPagination
+    filter_backends = [SearchFilter]
+    search_fields = ['user__username', 'path', 'method']
 
 # HERE IS ALL THE ENDPOINTS OF THE API
 
@@ -424,6 +439,15 @@ def details_universidad(request, pk):
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
+def details_campus(request, codigo):
+    campus = Campus.objects.filter(CampusCodigo=codigo).first()
+    if campus is None:
+        return Response({'error': 'Campus not found'}, status=status.HTTP_404_NOT_FOUND)
+    serializer = CampusSerializer(campus)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
 def details_facultad(request, pk):
     facultad = Facultad.objects.filter(pk=pk).first()
     if facultad is None:
@@ -498,7 +522,7 @@ def login_view(request):
     user = authenticate(username=username, password=password)
     if user is not None:
         refresh = RefreshToken.for_user(user)
-        user_data = UserSerializer(user).data  
+        user_data = UserSerializer(user).data
 
         return Response({
             'refresh': str(refresh),
@@ -539,10 +563,10 @@ def UniversidadExport(request):
 
     for universidad in queryset:
         data.append({
-            'Código': universidad.UniversidadCodigo,
+            'Codigo': universidad.UniversidadCodigo,
             'Nombre': universidad.UniversidadNombre,
-            'Dirección': universidad.UniversidadDireccion,
-            'Teléfono': universidad.UniversidadTelefono,
+            'Direccion': universidad.UniversidadDireccion,
+            'Telefono': universidad.UniversidadTelefono,
             'Email': universidad.UniversidadEmail,
             'Sitio Web': universidad.UniversidadSitioWeb,
             'Rector': universidad.UniversidadRector,
@@ -556,6 +580,34 @@ def UniversidadExport(request):
 
     return response
 
+
+@api_view(["GET"])
+def CampusExport(request):
+    queryset = Campus.objects.select_related("Campus_UniversidadFK").all()
+    data = []
+
+    for campus in queryset:
+        data.append({
+            "Codigo": campus.CampusCodigo,
+            "Nombre": campus.CampusNombre,
+            "Direccion": campus.CampusDireccion,
+            "Ciudad": campus.CampusCiudad,
+            "Provincia": campus.CampusProvincia,
+            "Pais": campus.CampusPais,
+            "Telefono": campus.CampusTelefono,
+            "Correo contacto": campus.CampusCorreoContacto,
+            "Estado": campus.CampusEstado,
+            "Universidad": campus.Campus_UniversidadFK.UniversidadNombre if campus.Campus_UniversidadFK else "---",
+        })
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="campus.xlsx"'
+
+    with pd.ExcelWriter(response, engine='openpyxl') as writer:
+        pd.DataFrame(data).to_excel(writer, sheet_name='Campus', index=False)
+
+    return response
+
 @api_view(["GET"])
 def FacultadExport(request):
     queryset = Facultad.objects.select_related("Facultad_UniversidadFK").all()
@@ -563,13 +615,14 @@ def FacultadExport(request):
 
     for facultad in queryset:
         data.append({
-            "Código": facultad.FacultadCodigo,
+            "Codigo": facultad.FacultadCodigo,
             "Nombre": facultad.FacultadNombre,
             "Decano": facultad.FacultadDecano,
-            "Teléfono": facultad.FacultadTelefono,
+            "Telefono": facultad.FacultadTelefono,
+            "Direccion": facultad.FacultadDireccion,
+            "Correo": facultad.FacultadEmail,
             "Estado": facultad.FacultadEstado,
             "Universidad": facultad.Facultad_UniversidadFK.UniversidadNombre if facultad.Facultad_UniversidadFK else "—",
-            "Dirección": facultad.FacultadDireccion,
         })
 
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -588,12 +641,11 @@ def EscuelaExport(request):
 
     for escuela in queryset:
         data.append({
-            'Código': escuela.EscuelaCodigo,
+            'Codigo': escuela.EscuelaCodigo,
             'Nombre': escuela.EscuelaNombre,
             'Directora': escuela.EscuelaDirectora,
-            'Teléfono': escuela.EscuelaTelefono,
+            'Telefono': escuela.EscuelaTelefono,
             'Correo': escuela.EscuelaCorreo,
-            'Estado': escuela.EscuelaEstado,
             'Universidad': escuela.Escuela_UniversidadFK.UniversidadNombre if escuela.Escuela_UniversidadFK else "—",
             'Facultad': escuela.Escuela_facultadFK.FacultadNombre if escuela.Escuela_facultadFK else "—",
         })
@@ -618,7 +670,7 @@ def DocenteExport(request):
 
     for d in queryset:
         data.append({
-            "Código": d.DocenteCodigo,
+            "Codigo": d.DocenteCodigo,
             "Nombre": d.DocenteNombre,
             "Apellido": d.DocenteApellido,
             "Sexo": d.DocenteSexo,
@@ -629,10 +681,9 @@ def DocenteExport(request):
             "Nacionalidad": d.DocenteNacionalidad,
             "Tipo ID": d.DocenteTipoIdentificacion,
             "Número ID": d.DocenteNumeroIdentificacion,
-            "Teléfono": d.DocenteTelefono,
+            "Telefono": d.DocenteTelefono,
             "Correo": d.DocenteCorreoElectronico,
-            "Dirección": d.DocenteDireccion,
-            "Estado": d.DocenteEstado,
+            "Direccion": d.DocenteDireccion,
             "Observaciones": d.DocenteObservaciones,
             "Usuario Registro": d.UsuarioRegistro,
             "Universidad": d.Docente_UniversidadFK.UniversidadNombre if d.Docente_UniversidadFK else "",
@@ -771,7 +822,7 @@ class ImportEscuela(APIView):
 
             required_columns = [
                 'Codigo', 'Nombre', 'Directora', 'Telefono',
-                'Correo', 'Estado', 'Universidad', 'Facultad'
+                'Correo', 'Universidad', 'Facultad'
             ]
 
             missing_columns = [col for col in required_columns if col not in df.columns]
@@ -787,26 +838,47 @@ class ImportEscuela(APIView):
             records_to_create = []
             failed_rows = []
 
-            for _, row in df.iterrows():
+            for index, row in df.iterrows():
                 try:
                     codigo = str(row['Codigo']).strip()
                     nombre = str(row['Nombre']).strip()
                     directora = str(row['Directora']).strip()
                     telefono = str(row['Telefono']).strip()
                     correo = str(row['Correo']).strip()
-                    estado = str(row['Estado']).strip()
                     universidad_nombre = str(row['Universidad']).strip().lower()
                     facultad_nombre = str(row['Facultad']).strip().lower()
 
                     universidad = universidades.get(universidad_nombre)
                     facultad = facultades.get(facultad_nombre)
 
-                    if not all([codigo, nombre, directora, telefono, correo, estado, universidad, facultad]):
-                        failed_rows.append(f"Datos incompletos o entidades no encontradas en fila: {row.to_dict()}")
+                    if not universidad:
+                        failed_rows.append(
+                            f"Universidad no encontrada: '{row['Universidad']}' en fila {index + 2}"
+                        )
+                        continue
+
+                    if not facultad:
+                        failed_rows.append(
+                            f"Facultad no encontrada: '{row['Facultad']}' en fila {index + 2}"
+                        )
+                        continue
+
+                    if not all([codigo, nombre, directora, telefono, correo]):
+                        failed_rows.append(
+                            f"Datos incompletos en fila {index + 2}: {row.to_dict()}"
+                        )
                         continue
 
                     if Escuela.objects.filter(EscuelaCodigo=codigo).exists():
-                        failed_rows.append(f"Escuela duplicada (código): {codigo}")
+                        failed_rows.append(f"Escuela duplicada (código): {codigo} en fila {index + 2}")
+                        continue
+
+                    if Escuela.objects.filter(EscuelaNombre__iexact=nombre).exists():
+                        failed_rows.append(f"Nombre de escuela duplicado: '{nombre}' en fila {index + 2}")
+                        continue
+
+                    if Escuela.objects.filter(EscuelaDirectora__iexact=directora).exists():
+                        failed_rows.append(f"Nombre de directora duplicado: '{directora}' en fila {index + 2}")
                         continue
 
                     escuela = Escuela(
@@ -815,7 +887,7 @@ class ImportEscuela(APIView):
                         EscuelaDirectora=directora,
                         EscuelaTelefono=telefono,
                         EscuelaCorreo=correo,
-                        EscuelaEstado=estado,
+                        EscuelaEstado='Activo',
                         Escuela_UniversidadFK=universidad,
                         Escuela_facultadFK=facultad,
                         UsuarioRegistro=request.user.username if request.user.is_authenticated else "admin"
@@ -823,22 +895,27 @@ class ImportEscuela(APIView):
                     records_to_create.append(escuela)
 
                 except Exception as e:
-                    failed_rows.append(f"Error en fila: {row.to_dict()} => {str(e)}")
+                    failed_rows.append(f"Error inesperado en fila {index + 2}: {str(e)}")
 
             if records_to_create:
                 with transaction.atomic():
                     Escuela.objects.bulk_create(records_to_create)
+                return Response({
+                    "message": f"{len(records_to_create)} escuelas importadas exitosamente.",
+                    "errores": failed_rows
+                }, status=status.HTTP_201_CREATED)
 
             return Response({
-                "message": f"{len(records_to_create)} escuelas importadas exitosamente.",
+                "message": "No se importó ninguna escuela debido a errores.",
                 "errores": failed_rows
-            }, status=status.HTTP_201_CREATED)
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
             return Response(
                 {"error": f"Error inesperado: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
             
 class ImportDocente(APIView):
     parser_classes = [MultiPartParser, FormParser]
@@ -872,33 +949,40 @@ class ImportDocente(APIView):
             records_to_create = []
             failed_rows = []
 
-            for _, row in df.iterrows():
+            for index, row in df.iterrows():
                 try:
                     universidad = universidades.get(str(row['Universidad']).strip().lower())
                     tipo = tipos_docente.get(str(row['TipoDocente']).strip().lower())
                     categoria = categorias_docente.get(str(row['CategoriaDocente']).strip().lower())
 
                     if not universidad:
-                        failed_rows.append(f"Universidad no encontrada: {row['Universidad']}")
+                        failed_rows.append(f"Universidad no encontrada: '{row['Universidad']}' en fila {index + 2}")
                         continue
 
                     if not tipo:
-                        failed_rows.append(f"TipoDocente no encontrado: {row['TipoDocente']}")
+                        failed_rows.append(f"TipoDocente no encontrado: '{row['TipoDocente']}' en fila {index + 2}")
                         continue
 
                     if not categoria:
-                        failed_rows.append(f"CategoriaDocente no encontrada: {row['CategoriaDocente']}")
+                        failed_rows.append(f"CategoriaDocente no encontrada: '{row['CategoriaDocente']}' en fila {index + 2}")
                         continue
 
                     codigo = str(row['Codigo']).strip()
                     if Docente.objects.filter(DocenteCodigo=codigo).exists():
-                        failed_rows.append(f"Docente duplicado (código): {codigo}")
+                        failed_rows.append(f"Docente duplicado (código): {codigo} en fila {index + 2}")
+                        continue
+
+                    nombre = str(row['Nombre']).strip()
+                    apellido = str(row['Apellido']).strip()
+
+                    if not all([codigo, nombre, apellido]):
+                        failed_rows.append(f"Datos incompletos en fila {index + 2}: {row.to_dict()}")
                         continue
 
                     docente = Docente(
                         DocenteCodigo=codigo,
-                        DocenteNombre=str(row['Nombre']).strip(),
-                        DocenteApellido=str(row['Apellido']).strip(),
+                        DocenteNombre=nombre,
+                        DocenteApellido=apellido,
                         DocenteSexo=str(row['Sexo']).strip(),
                         DocenteEstadoCivil=str(row['EstadoCivil']).strip(),
                         DocenteFechaNacimiento=pd.to_datetime(row['FechaNacimiento'], errors='coerce'),
@@ -920,7 +1004,7 @@ class ImportDocente(APIView):
                     records_to_create.append(docente)
 
                 except Exception as e:
-                    failed_rows.append(f"Error en fila: {row.to_dict()} => {str(e)}")
+                    failed_rows.append(f"Error inesperado en fila {index + 2}: {str(e)}")
 
             if records_to_create:
                 with transaction.atomic():
@@ -929,13 +1013,14 @@ class ImportDocente(APIView):
             return Response({
                 "message": f"{len(records_to_create)} docentes importados exitosamente.",
                 "errores": failed_rows
-            }, status=status.HTTP_201_CREATED)
+            }, status=status.HTTP_201_CREATED if records_to_create else status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
             return Response(
                 {"error": f"Error inesperado: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
             
 class ImportAsignacion(APIView):
     parser_classes = [MultiPartParser, FormParser]
@@ -1071,7 +1156,7 @@ class ImportUniversidad(APIView):
 
             required_columns = [
                 'Codigo', 'Nombre', 'Direccion', 'Telefono',
-                'Email', 'SitioWeb', 'Rector', 'Estado'
+                'Email', 'SitioWeb', 'Rector'
             ]
 
             missing_columns = [col for col in required_columns if col not in df.columns]
@@ -1084,7 +1169,7 @@ class ImportUniversidad(APIView):
             records_to_create = []
             failed_rows = []
 
-            for _, row in df.iterrows():
+            for index, row in df.iterrows():
                 try:
                     codigo = str(row.get('Codigo', '')).strip()
                     nombre = str(row.get('Nombre', '')).strip()
@@ -1093,14 +1178,17 @@ class ImportUniversidad(APIView):
                     email = str(row.get('Email', '')).strip()
                     sitio_web = str(row.get('SitioWeb', '')).strip()
                     rector = str(row.get('Rector', '')).strip()
-                    estado = str(row.get('Estado', '')).strip()
 
-                    if not all([codigo, nombre, direccion, telefono, email, sitio_web, rector, estado]):
-                        failed_rows.append(f"Datos incompletos en fila: {row.to_dict()}")
+                    if not all([codigo, nombre, direccion, telefono, email, sitio_web, rector]):
+                        failed_rows.append(f"Datos incompletos en fila {index + 2}: {row.to_dict()}")
                         continue
 
                     if Universidad.objects.filter(UniversidadCodigo=codigo).exists():
-                        failed_rows.append(f"Duplicado: Código '{codigo}' ya existe")
+                        failed_rows.append(f"Código duplicado: '{codigo}' ya existe en fila {index + 2}")
+                        continue
+
+                    if Universidad.objects.filter(UniversidadNombre__iexact=nombre).exists():
+                        failed_rows.append(f"Nombre duplicado: '{nombre}' ya existe en fila {index + 2}")
                         continue
 
                     universidad = Universidad(
@@ -1111,13 +1199,13 @@ class ImportUniversidad(APIView):
                         UniversidadEmail=email,
                         UniversidadSitioWeb=sitio_web,
                         UniversidadRector=rector,
-                        UniversidadEstado=estado,
+                        UniversidadEstado='Activo',  # Valor por defecto
                         UsuarioRegistro=request.user.username if request.user.is_authenticated else "admin"
                     )
                     records_to_create.append(universidad)
 
                 except Exception as e:
-                    failed_rows.append(f"Error en fila: {row.to_dict()} => {str(e)}")
+                    failed_rows.append(f"Error inesperado en fila {index + 2}: {str(e)}")
 
             if records_to_create:
                 with transaction.atomic():
@@ -1126,13 +1214,14 @@ class ImportUniversidad(APIView):
             return Response({
                 "message": f"{len(records_to_create)} universidades importadas exitosamente.",
                 "errores": failed_rows
-            }, status=status.HTTP_201_CREATED)
+            }, status=status.HTTP_201_CREATED if records_to_create else status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
             return Response(
                 {"error": f"Error inesperado: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
 
 class ImportCampus(APIView):
     parser_classes = [MultiPartParser, FormParser]

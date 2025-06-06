@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Universidad,Campus, Facultad, Escuela, TipoDocente, CategoriaDocente, Docente, PeriodoAcademico, AsignacionDocente
+from .models import Universidad,Campus, Facultad, Escuela, TipoDocente, CategoriaDocente, Docente, PeriodoAcademico, AsignacionDocente, APILog
 from django.contrib.auth.models import Group 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -41,6 +41,11 @@ class RegistroUsuarioSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
+
+class APILogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = APILog
+        fields = '__all__'
 # Universidad Serializer
 class UniversidadSerializer(serializers.ModelSerializer):
     class Meta:
@@ -283,3 +288,6 @@ class AsignacionDocenteSerializer_frontend(serializers.ModelSerializer):
         if docente:
             return f"{docente.nombre} {docente.apellidos}"  # Combine nombre and apellidos
         return None  
+    
+    
+    

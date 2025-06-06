@@ -1,5 +1,7 @@
 from django.db import models
+from django.contrib.auth import get_user_model
 
+User = get_user_model()
 
 class Universidad(models.Model):
     UniversidadID = models.AutoField(primary_key=True)  # ID interno autoincremental
@@ -14,7 +16,8 @@ class Universidad(models.Model):
     UsuarioRegistro = models.CharField(max_length=55, null=False, default='admin')
     UniversidadEstado = models.CharField(
         max_length=15,
-        choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')]
+        choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')],
+        default='Activo'
     )
 
     class Meta:
@@ -40,7 +43,8 @@ class Campus(models.Model):
     UsuarioRegistro = models.CharField(max_length=50, blank=True, null=True, default='admin')
     CampusEstado = models.CharField(
         max_length=15,
-        choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')]
+        choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')],
+        default='Activo'
     )
     
     Campus_UniversidadFK = models.ForeignKey(Universidad, on_delete=models.CASCADE)
@@ -64,7 +68,7 @@ class Facultad(models.Model):
     FacultadEmail = models.CharField(max_length=100, null=False)
     FacultadFechaRegistro = models.DateTimeField(auto_now_add=True)
     UsuarioRegistro = models.CharField(max_length=50, blank=True, null=True, default='admin')
-    FacultadEstado = models.CharField(max_length=15, choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')])
+    FacultadEstado = models.CharField(max_length=15, choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')], default='Activo')
     
     
     Facultad_UniversidadFK = models.ForeignKey(Universidad, on_delete=models.CASCADE)
@@ -89,7 +93,7 @@ class Escuela(models.Model):
     EscuelaCorreo = models.CharField(max_length=100, null=False)
     EscuelaFechaRegistro = models.DateTimeField(auto_now_add=True)
     UsuarioRegistro = models.CharField(max_length=50, blank=True, null=True, default='admin')
-    EscuelaEstado = models.CharField(max_length=15, choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')])
+    EscuelaEstado = models.CharField(max_length=15, choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')], default='Activo')
 
     Escuela_UniversidadFK = models.ForeignKey(Universidad, on_delete=models.CASCADE)
     Escuela_facultadFK = models.ForeignKey(Facultad, on_delete=models.CASCADE)
@@ -109,7 +113,7 @@ class TipoDocente(models.Model):
     TipoDocenteID = models.AutoField(primary_key=True)  # ID interno autoincremental
     TipoDocenteCodigo = models.CharField(max_length=25, unique=True)  # Ingresado por el usuario
     TipoDocenteDescripcion = models.CharField(max_length=255, null=False, unique=True)
-    TipoDocenteEstado = models.CharField(max_length=15, choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')])
+    TipoDocenteEstado = models.CharField(max_length=15, choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')], default='Activo')
     TipoFechaRegistro = models.DateTimeField(auto_now_add=True)
     UsuarioRegistro = models.CharField(max_length=50, blank=True, null=True, default='admin')
 
@@ -130,7 +134,7 @@ class CategoriaDocente(models.Model):
   CategoriaID = models.AutoField(primary_key=True)  # ID interno autoincremental
   categoriaCodigo = models.CharField(max_length=25,unique=True)  # Ingresado por el usuario
   CategoriaNombre = models.CharField(max_length=100, null=False, unique=True)
-  CategoriaEstado = models.CharField(max_length=15, choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')])
+  CategoriaEstado = models.CharField(max_length=15, choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')], default='Activo')
   CategoriaFechaRegistro = models.DateTimeField(auto_now_add=True)
   UsuarioRegistro = models.CharField(max_length=50, blank=True, null=True, default='admin')
  
@@ -270,3 +274,17 @@ class AsignacionDocente(models.Model):
         ]
     def __str__(self):
         return f"{self.nrc} - {self.nombre}"
+    
+    
+
+
+class APILog(models.Model):
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    method = models.CharField(max_length=10)
+    path = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    status_code = models.IntegerField()
+    message = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.user} {self.method} {self.path} [{self.status_code}]"

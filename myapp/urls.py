@@ -10,6 +10,7 @@ urlpatterns = [
     path('', views.index, name='index'),
     path('api/usuarios', views.UserListView.as_view(), name='user-list'),
     path('api/registro', views.RegistroUsuarioAPI.as_view(), name='registro'),
+    path('api/logs/', views.APILogList.as_view(), name='api-logs'),
     path("api/usuarios/<int:pk>/", views.EditarUsuarioAPI.as_view()),
     path('api/asignacion/copiar', views.copiar_asignaciones),
     
@@ -63,6 +64,7 @@ urlpatterns = [
     path('api/asignacionDocente/delete', views.delete_asignacion_by_period),
     # DETAILS
     path('api/universidad/<int:pk>/', views.details_universidad, name='detalle_universidad'),
+    path("api/campus/<str:codigo>/", views.details_campus),
     path('api/facultad/<int:pk>/', views.details_facultad, name='detalle_facultad'),
     path('api/escuela/<int:pk>/', views.details_escuela, name='detalle_escuela'),
     path('api/tipodocente/<int:pk>/', views.details_tipoDocente, name='detalle_tipoDocente'),
@@ -76,6 +78,7 @@ urlpatterns = [
 
     # Exports or Reports
     path('export/universidad',views.UniversidadExport),
+    path('export/campus', views.CampusExport),
     path('export/facultad', views.FacultadExport),
     path('export/escuela', views.EscuelaExport),
     path('export/docente', views.DocenteExport),

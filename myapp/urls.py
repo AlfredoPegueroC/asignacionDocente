@@ -88,6 +88,7 @@ urlpatterns = [
     path('export/periodoAcademico', views.PeriodoAcademicoExport),
     # import
     path('import/asignacion', views.ImportAsignacion.as_view()),
+    path('import/campus', views.ImportCampus.as_view()),
     path('import/facultad', views.ImportFacultad.as_view()),
     path('import/escuela', views.ImportEscuela.as_view()),
     path('import/docente', views.ImportDocente.as_view()),

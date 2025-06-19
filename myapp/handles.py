@@ -88,7 +88,7 @@ def getAllHandle_asignacion(request, modelData, serializer_class):
     try:
         queryset = modelData.objects.all()
 
-        # Search filter
+        # --- Búsqueda global incluyendo ForeignKey ---
         search_query = request.query_params.get('search', None)
         if search_query:
             query = Q()
@@ -104,28 +104,26 @@ def getAllHandle_asignacion(request, modelData, serializer_class):
                                 query |= Q(**{f"{field.name}__{related_field.name}__icontains": search_query})
             queryset = queryset.filter(query)
 
-        # Filter by custom parameters
+        # --- Filtros dinámicos ---
         filters = {}
         for key, value in request.query_params.items():
-            if key == "search" or key == "page" or key == "sort_by":
+            if key in ["search", "page", "sort_by", "page_size"]:
                 continue
             elif key == "periodo":
-                # Traduce 'periodo' a 'periodoFk__PeriodoNombre'
                 filters["periodoFk__PeriodoNombre"] = value
             else:
-                filters[key] = value  # permite filtros directos y anidados (campo__subcampo)
+                filters[key] = value  # permite filtros exactos o campo__subcampo
 
         if filters:
             queryset = queryset.filter(**filters)
 
-        # Sort
+        # --- Ordenamiento dinámico ---
         sort_by = request.query_params.get('sort_by', 'ADIDcodigo')
-        if hasattr(modelData, sort_by.lstrip('-')):
+        if sort_by.lstrip('-') in [f.name for f in modelData._meta.fields]:
             queryset = queryset.order_by(sort_by)
 
-        # Pagination
-        paginator = PageNumberPagination()
-        paginator.page_size = 30
+        # --- Paginación con clase personalizada ---
+        paginator = CustomPagination()
         paginated_queryset = paginator.paginate_queryset(queryset, request)
 
         serializer = serializer_class(paginated_queryset, many=True)

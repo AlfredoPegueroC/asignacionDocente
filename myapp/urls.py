@@ -54,6 +54,7 @@ urlpatterns = [
     path('api/asignacion/edit/<int:pk>/', views.update_asignacion),
     # URLS DELETE
     path('api/universidad/delete/<pk>/', views.delete_universidad),
+    path('api/campus/delete/<int:pk>/', views.delete_campus),
     path('api/facultad/delete/<int:pk>/', views.delete_facultad),
     path('api/escuela/delete/<int:pk>/', views.delete_escuela),
     path('api/tipodocente/delete/<int:pk>/', views.delete_tipoDocente),

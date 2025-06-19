@@ -424,6 +424,14 @@ def delete_asignacion_by_period(request):
 
     return Response({"message": "Records deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
 
+@api_view(['DELETE'])
+def delete_campus(request, pk):
+    try:
+        campus = Campus.objects.get(pk=pk)
+        campus.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except Campus.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
 
 #endregion
 

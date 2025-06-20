@@ -512,7 +512,7 @@ def details_periodoAcademico(request, pk):
 def details_Asignacion(request, pk):
     asignacion = AsignacionDocente.objects.filter(pk=pk).first()
     if asignacion is None:
-        return Response({'error': 'Periodo academico not found'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'error': 'Asignacion not found'}, status=status.HTTP_404_NOT_FOUND)
     serializer = AsignacionDocenteSerializer(asignacion)
 
     return Response(serializer.data, status=status.HTTP_200_OK)
@@ -1176,6 +1176,7 @@ class ImportUniversidad(APIView):
 
             records_to_create = []
             failed_rows = []
+            duplicados = 0
 
             for index, row in df.iterrows():
                 try:
@@ -1191,12 +1192,9 @@ class ImportUniversidad(APIView):
                         failed_rows.append(f"Datos incompletos en fila {index + 2}: {row.to_dict()}")
                         continue
 
-                    if Universidad.objects.filter(UniversidadCodigo=codigo).exists():
-                        failed_rows.append(f"Código duplicado: '{codigo}' ya existe en fila {index + 2}")
-                        continue
-
-                    if Universidad.objects.filter(UniversidadNombre__iexact=nombre).exists():
-                        failed_rows.append(f"Nombre duplicado: '{nombre}' ya existe en fila {index + 2}")
+                    if Universidad.objects.filter(UniversidadCodigo=codigo).exists() or \
+                       Universidad.objects.filter(UniversidadNombre__iexact=nombre).exists():
+                        duplicados += 1
                         continue
 
                     universidad = Universidad(
@@ -1207,7 +1205,7 @@ class ImportUniversidad(APIView):
                         UniversidadEmail=email,
                         UniversidadSitioWeb=sitio_web,
                         UniversidadRector=rector,
-                        UniversidadEstado='Activo',  # Valor por defecto
+                        UniversidadEstado='Activo',
                         UsuarioRegistro=request.user.username if request.user.is_authenticated else "admin"
                     )
                     records_to_create.append(universidad)
@@ -1219,10 +1217,18 @@ class ImportUniversidad(APIView):
                 with transaction.atomic():
                     Universidad.objects.bulk_create(records_to_create)
 
+                return Response({
+                    "message": f"{len(records_to_create)} universidades importadas exitosamente.",
+                    "errores": failed_rows,
+                    "duplicados_omitidos": duplicados
+                }, status=status.HTTP_201_CREATED)
+
+            # No nuevos registros, pero no es un error
             return Response({
-                "message": f"{len(records_to_create)} universidades importadas exitosamente.",
-                "errores": failed_rows
-            }, status=status.HTTP_201_CREATED if records_to_create else status.HTTP_400_BAD_REQUEST)
+                "message": "0 universidades importadas. Todos los registros ya existen o estaban incompletos.",
+                "errores": failed_rows,
+                "duplicados_omitidos": duplicados
+            }, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response(

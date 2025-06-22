@@ -599,12 +599,11 @@ def CampusExport(request):
             "Codigo": campus.CampusCodigo,
             "Nombre": campus.CampusNombre,
             "Direccion": campus.CampusDireccion,
-            "Ciudad": campus.CampusCiudad,
-            "Provincia": campus.CampusProvincia,
             "Pais": campus.CampusPais,
+            "Provincia": campus.CampusProvincia,
+            "Ciudad": campus.CampusCiudad,
             "Telefono": campus.CampusTelefono,
-            "Correo contacto": campus.CampusCorreoContacto,
-            "Estado": campus.CampusEstado,
+            "Correo Contacto": campus.CampusCorreoContacto,
             "Universidad": campus.Campus_UniversidadFK.UniversidadNombre if campus.Campus_UniversidadFK else "---",
         })
 
@@ -616,9 +615,10 @@ def CampusExport(request):
 
     return response
 
+
 @api_view(["GET"])
 def FacultadExport(request):
-    queryset = Facultad.objects.select_related("Facultad_UniversidadFK").all()
+    queryset = Facultad.objects.select_related("Facultad_UniversidadFK", "Facultad_CampusFK").all()
     data = []
 
     for facultad in queryset:
@@ -626,18 +626,22 @@ def FacultadExport(request):
             "Codigo": facultad.FacultadCodigo,
             "Nombre": facultad.FacultadNombre,
             "Decano": facultad.FacultadDecano,
-            "Telefono": facultad.FacultadTelefono,
             "Direccion": facultad.FacultadDireccion,
-            "Correo": facultad.FacultadEmail,
-            "Estado": facultad.FacultadEstado,
+            "Telefono": facultad.FacultadTelefono,
+            "Email": facultad.FacultadEmail,
             "Universidad": facultad.Facultad_UniversidadFK.UniversidadNombre if facultad.Facultad_UniversidadFK else "—",
+            "Campus": facultad.Facultad_CampusFK.CampusNombre if facultad.Facultad_CampusFK else "—",
         })
 
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    df = pd.DataFrame(data)
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
     response['Content-Disposition'] = 'attachment; filename="facultades.xlsx"'
 
     with pd.ExcelWriter(response, engine='openpyxl') as writer:
-        pd.DataFrame(data).to_excel(writer, sheet_name='Facultades', index=False)
+        df.to_excel(writer, sheet_name='Facultades', index=False)
 
     return response
 
@@ -669,8 +673,8 @@ def EscuelaExport(request):
 @api_view(["GET"])
 def DocenteExport(request):
     queryset = Docente.objects.select_related(
-        "Docente_UniversidadFK", 
-        "Docente_TipoDocenteFK", 
+        "Docente_UniversidadFK",
+        "Docente_TipoDocenteFK",
         "Docente_CategoriaDocenteFK"
     ).all()
 
@@ -682,70 +686,68 @@ def DocenteExport(request):
             "Nombre": d.DocenteNombre,
             "Apellido": d.DocenteApellido,
             "Sexo": d.DocenteSexo,
-            "Estado Civil": d.DocenteEstadoCivil,
-            "Fecha Nacimiento": d.DocenteFechaNacimiento,
-            "Lugar Nacimiento": d.DocenteLugarNacimiento,
-            "Fecha Ingreso": d.DocenteFechaIngreso,
+            "EstadoCivil": d.DocenteEstadoCivil,
+            "FechaNacimiento": d.DocenteFechaNacimiento,
+            "LugarNacimiento": d.DocenteLugarNacimiento,
+            "FechaIngreso": d.DocenteFechaIngreso,
             "Nacionalidad": d.DocenteNacionalidad,
-            "Tipo ID": d.DocenteTipoIdentificacion,
-            "Número ID": d.DocenteNumeroIdentificacion,
+            "TipoIdentificacion": d.DocenteTipoIdentificacion,
+            "NumeroIdentificacion": d.DocenteNumeroIdentificacion,
             "Telefono": d.DocenteTelefono,
-            "Correo": d.DocenteCorreoElectronico,
+            "CorreoElectronico": d.DocenteCorreoElectronico,
             "Direccion": d.DocenteDireccion,
             "Observaciones": d.DocenteObservaciones,
-            "Usuario Registro": d.UsuarioRegistro,
             "Universidad": d.Docente_UniversidadFK.UniversidadNombre if d.Docente_UniversidadFK else "",
-            "Tipo Docente": d.Docente_TipoDocenteFK.TipoDocenteDescripcion if d.Docente_TipoDocenteFK else "",
-            "Categoría Docente": d.Docente_CategoriaDocenteFK.CategoriaNombre if d.Docente_CategoriaDocenteFK else "",
+            "TipoDocente": d.Docente_TipoDocenteFK.TipoDocenteDescripcion if d.Docente_TipoDocenteFK else "",
+            "CategoriaDocente": d.Docente_CategoriaDocenteFK.CategoriaNombre if d.Docente_CategoriaDocenteFK else "",
         })
 
-    response = HttpResponse(content_type='application/vnd.ms-excel')
-    response['Content-Disposition'] = 'attachment; filename="docente_data.xlsx"'
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="docentes.xlsx"'
 
     with pd.ExcelWriter(response, engine='openpyxl') as writer:
         pd.DataFrame(data).to_excel(writer, sheet_name='Docentes', index=False)
 
     return response
-
 @api_view(["GET"])
 def CategoriaDocenteExport(request):
-  queryset = CategoriaDocente.objects.all()
-  data = []
+    queryset = CategoriaDocente.objects.select_related("Categoria_UniversidadFK").all()
+    data = []
 
-  for categoria in queryset:
-    data.append({
-      'Nombre': categoria.nombre,
-      'Estado': categoria.estado,
-      'Universidad': categoria.UniversidadCodigo.nombre
-    })
+    for categoria in queryset:
+        data.append({
+            'Codigo': categoria.categoriaCodigo,
+            'Nombre': categoria.CategoriaNombre,
+            'Universidad': categoria.Categoria_UniversidadFK.UniversidadNombre if categoria.Categoria_UniversidadFK else "—"
+        })
 
-  response = HttpResponse(content_type='application/vnd.ms-excel')
-  response['Content-Disposition'] = 'attachment; filename="CategoriaDocente_data.xlsx"'
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="categoria_docente.xlsx"'
 
-  with pd.ExcelWriter(response, engine='openpyxl') as writer:
-    pd.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
+    with pd.ExcelWriter(response, engine='openpyxl') as writer:
+        pd.DataFrame(data).to_excel(writer, sheet_name='Categorías', index=False)
 
-  return response
+    return response
 
 
 @api_view(["GET"])
 def TipoDocenteExport(request):
-    queryset = TipoDocente.objects.all()
+    queryset = TipoDocente.objects.select_related("TipoDocente_UniversidadFK").all()
     data = []
-    
+
     for tipo in queryset:
         data.append({
-        'Nombre': tipo.nombre,
-        'Estado': tipo.estado,
-        'Universidad': tipo.UniversidadCodigo.nombre
+            'Código': tipo.TipoDocenteCodigo,
+            'Descripción': tipo.TipoDocenteDescripcion,
+            'Universidad': tipo.TipoDocente_UniversidadFK.UniversidadNombre if tipo.TipoDocente_UniversidadFK else "—"
         })
-    
-    response = HttpResponse(content_type='application/vnd.ms-excel')
-    response['Content-Disposition'] = 'attachment; filename="TipoDocente_data.xlsx"'
-    
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="tipo_docente.xlsx"'
+
     with pd.ExcelWriter(response, engine='openpyxl') as writer:
-        pd.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
-    
+        pd.DataFrame(data).to_excel(writer, sheet_name='TipoDocente', index=False)
+
     return response
 
 @api_view(["GET"])
@@ -836,7 +838,7 @@ class ImportEscuela(APIView):
             missing_columns = [col for col in required_columns if col not in df.columns]
             if missing_columns:
                 return Response(
-                    {"error": f"Faltan columnas: {', '.join(missing_columns)}"},
+                    {"error": f"Faltan columnas requeridas: {', '.join(missing_columns)}"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
@@ -845,48 +847,60 @@ class ImportEscuela(APIView):
 
             records_to_create = []
             failed_rows = []
+            duplicated_rows = []
+            duplicated_names = []
+            duplicated_directoras = []
 
             for index, row in df.iterrows():
+                fila = index + 2  # número real de fila en Excel
                 try:
-                    codigo = str(row['Codigo']).strip()
-                    nombre = str(row['Nombre']).strip()
-                    directora = str(row['Directora']).strip()
-                    telefono = str(row['Telefono']).strip()
-                    correo = str(row['Correo']).strip()
-                    universidad_nombre = str(row['Universidad']).strip().lower()
-                    facultad_nombre = str(row['Facultad']).strip().lower()
+                    codigo = str(row.get('Codigo', '')).strip()
+                    nombre = str(row.get('Nombre', '')).strip()
+                    directora = str(row.get('Directora', '')).strip()
+                    telefono = str(row.get('Telefono', '')).strip()
+                    correo = str(row.get('Correo', '')).strip()
+                    universidad_nombre = str(row.get('Universidad', '')).strip().lower()
+                    facultad_nombre = str(row.get('Facultad', '')).strip().lower()
+
+                    # Validar campos vacíos
+                    required_fields = {
+                        "Codigo": codigo,
+                        "Nombre": nombre,
+                        "Directora": directora,
+                        "Telefono": telefono,
+                        "Correo": correo,
+                        "Universidad": universidad_nombre,
+                        "Facultad": facultad_nombre,
+                    }
+
+                    for field, value in required_fields.items():
+                        if not value:
+                            failed_rows.append(f"Fila {fila}: El campo '{field}' está vacío.")
+                            raise ValueError("Campo vacío")
 
                     universidad = universidades.get(universidad_nombre)
                     facultad = facultades.get(facultad_nombre)
 
                     if not universidad:
-                        failed_rows.append(
-                            f"Universidad no encontrada: '{row['Universidad']}' en fila {index + 2}"
-                        )
+                        failed_rows.append(f"Fila {fila}: Universidad '{row.get('Universidad')}' no encontrada.")
                         continue
 
                     if not facultad:
-                        failed_rows.append(
-                            f"Facultad no encontrada: '{row['Facultad']}' en fila {index + 2}"
-                        )
-                        continue
-
-                    if not all([codigo, nombre, directora, telefono, correo]):
-                        failed_rows.append(
-                            f"Datos incompletos en fila {index + 2}: {row.to_dict()}"
-                        )
+                        failed_rows.append(f"Fila {fila}: Facultad '{row.get('Facultad')}' no encontrada.")
                         continue
 
                     if Escuela.objects.filter(EscuelaCodigo=codigo).exists():
-                        failed_rows.append(f"Escuela duplicada (código): {codigo} en fila {index + 2}")
+                        duplicated_rows.append(f"Fila {fila}: El código '{codigo}' ya existe.")
                         continue
 
                     if Escuela.objects.filter(EscuelaNombre__iexact=nombre).exists():
-                        failed_rows.append(f"Nombre de escuela duplicado: '{nombre}' en fila {index + 2}")
+                        duplicated_rows.append(f"Fila {fila}: El nombre '{nombre}' ya existe.")
+                        duplicated_names.append(nombre)
                         continue
 
                     if Escuela.objects.filter(EscuelaDirectora__iexact=directora).exists():
-                        failed_rows.append(f"Nombre de directora duplicado: '{directora}' en fila {index + 2}")
+                        duplicated_rows.append(f"Fila {fila}: La directora '{directora}' ya existe.")
+                        duplicated_directoras.append(directora)
                         continue
 
                     escuela = Escuela(
@@ -902,27 +916,49 @@ class ImportEscuela(APIView):
                     )
                     records_to_create.append(escuela)
 
+                except ValueError:
+                    continue
                 except Exception as e:
-                    failed_rows.append(f"Error inesperado en fila {index + 2}: {str(e)}")
+                    failed_rows.append(f"Error inesperado en fila {fila}: {str(e)}")
 
             if records_to_create:
                 with transaction.atomic():
                     Escuela.objects.bulk_create(records_to_create)
+
                 return Response({
-                    "message": f"{len(records_to_create)} escuelas importadas exitosamente.",
-                    "errores": failed_rows
+                    "message": f"{len(records_to_create)} escuelas importadas exitosamente. "
+                               f"{len(duplicated_rows)} duplicados fueron omitidos. "
+                               f"{len(failed_rows)} filas fallaron.",
+                    "errores": failed_rows,
+                    "duplicados": duplicated_rows,
+                    "nombres_duplicados": duplicated_names,
+                    "directoras_duplicadas": duplicated_directoras
                 }, status=status.HTTP_201_CREATED)
 
+            # Si no se creó ningún registro
+            if duplicated_rows and failed_rows:
+                message = "No se importó ninguna escuela. Todos los registros eran duplicados o contenían errores."
+            elif duplicated_rows:
+                message = "No se importó ninguna escuela. Todos los registros eran duplicados."
+            elif failed_rows:
+                message = "No se importó ninguna escuela. Todos los registros tenían errores."
+            else:
+                message = "No se importó ninguna escuela. Causa desconocida."
+
             return Response({
-                "message": "No se importó ninguna escuela debido a errores.",
-                "errores": failed_rows
-            }, status=status.HTTP_400_BAD_REQUEST)
+                "message": message,
+                "errores": failed_rows,
+                "duplicados": duplicated_rows,
+                "nombres_duplicados": duplicated_names,
+                "directoras_duplicadas": duplicated_directoras
+            }, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response(
                 {"error": f"Error inesperado: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
 
             
 class ImportDocente(APIView):
@@ -940,13 +976,13 @@ class ImportDocente(APIView):
                 'Codigo', 'Nombre', 'Apellido', 'Sexo', 'EstadoCivil', 'FechaNacimiento',
                 'LugarNacimiento', 'FechaIngreso', 'Nacionalidad', 'TipoIdentificacion',
                 'NumeroIdentificacion', 'Telefono', 'CorreoElectronico', 'Direccion',
-                'Estado', 'Observaciones', 'Universidad', 'TipoDocente', 'CategoriaDocente'
+                'Observaciones', 'Universidad', 'TipoDocente', 'CategoriaDocente'
             ]
 
             missing_columns = [col for col in required_columns if col not in df.columns]
             if missing_columns:
                 return Response(
-                    {"error": f"Faltan columnas: {', '.join(missing_columns)}"},
+                    {"error": f"Faltan columnas requeridas: {', '.join(missing_columns)}"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
@@ -956,54 +992,82 @@ class ImportDocente(APIView):
 
             records_to_create = []
             failed_rows = []
+            duplicated_rows = []
 
             for index, row in df.iterrows():
+                fila = index + 2
                 try:
-                    universidad = universidades.get(str(row['Universidad']).strip().lower())
-                    tipo = tipos_docente.get(str(row['TipoDocente']).strip().lower())
-                    categoria = categorias_docente.get(str(row['CategoriaDocente']).strip().lower())
+                    # Limpiar y mapear datos
+                    codigo = str(row.get('Codigo', '')).strip()
+                    nombre = str(row.get('Nombre', '')).strip()
+                    apellido = str(row.get('Apellido', '')).strip()
+                    sexo = str(row.get('Sexo', '')).strip()
+                    estado_civil = str(row.get('EstadoCivil', '')).strip()
+                    fecha_nacimiento = pd.to_datetime(row.get('FechaNacimiento', ''), errors='coerce')
+                    lugar_nacimiento = str(row.get('LugarNacimiento', '')).strip()
+                    fecha_ingreso = pd.to_datetime(row.get('FechaIngreso', ''), errors='coerce')
+                    nacionalidad = str(row.get('Nacionalidad', '')).strip()
+                    tipo_id = str(row.get('TipoIdentificacion', '')).strip()
+                    num_id = str(row.get('NumeroIdentificacion', '')).strip()
+                    telefono = str(row.get('Telefono', '')).strip()
+                    correo = str(row.get('CorreoElectronico', '')).strip()
+                    direccion = str(row.get('Direccion', '')).strip()
+                    observaciones = str(row.get('Observaciones', '')).strip() if pd.notna(row.get('Observaciones')) else ''
+                    universidad_nombre = str(row.get('Universidad', '')).strip().lower()
+                    tipo_nombre = str(row.get('TipoDocente', '')).strip().lower()
+                    categoria_nombre = str(row.get('CategoriaDocente', '')).strip().lower()
+
+                    # Validar campos requeridos vacíos
+                    required_fields = {
+                        "Codigo": codigo, "Nombre": nombre, "Apellido": apellido,
+                        "Sexo": sexo, "EstadoCivil": estado_civil, "FechaNacimiento": fecha_nacimiento,
+                        "LugarNacimiento": lugar_nacimiento, "FechaIngreso": fecha_ingreso,
+                        "Nacionalidad": nacionalidad, "TipoIdentificacion": tipo_id,
+                        "NumeroIdentificacion": num_id, "Telefono": telefono, "CorreoElectronico": correo,
+                        "Direccion": direccion,  "Universidad": universidad_nombre,
+                        "TipoDocente": tipo_nombre, "CategoriaDocente": categoria_nombre
+                    }
+
+                    for field, value in required_fields.items():
+                        if value in [None, ""] or (isinstance(value, float) and pd.isna(value)):
+                            failed_rows.append(f"Fila {fila}: El campo '{field}' está vacío.")
+                            raise ValueError("Campo vacío")
+
+                    universidad = universidades.get(universidad_nombre)
+                    tipo = tipos_docente.get(tipo_nombre)
+                    categoria = categorias_docente.get(categoria_nombre)
 
                     if not universidad:
-                        failed_rows.append(f"Universidad no encontrada: '{row['Universidad']}' en fila {index + 2}")
+                        failed_rows.append(f"Fila {fila}: Universidad '{row.get('Universidad')}' no encontrada.")
                         continue
-
                     if not tipo:
-                        failed_rows.append(f"TipoDocente no encontrado: '{row['TipoDocente']}' en fila {index + 2}")
+                        failed_rows.append(f"Fila {fila}: TipoDocente '{row.get('TipoDocente')}' no encontrado.")
                         continue
-
                     if not categoria:
-                        failed_rows.append(f"CategoriaDocente no encontrada: '{row['CategoriaDocente']}' en fila {index + 2}")
+                        failed_rows.append(f"Fila {fila}: CategoriaDocente '{row.get('CategoriaDocente')}' no encontrada.")
                         continue
 
-                    codigo = str(row['Codigo']).strip()
                     if Docente.objects.filter(DocenteCodigo=codigo).exists():
-                        failed_rows.append(f"Docente duplicado (código): {codigo} en fila {index + 2}")
-                        continue
-
-                    nombre = str(row['Nombre']).strip()
-                    apellido = str(row['Apellido']).strip()
-
-                    if not all([codigo, nombre, apellido]):
-                        failed_rows.append(f"Datos incompletos en fila {index + 2}: {row.to_dict()}")
+                        duplicated_rows.append(f"Fila {fila}: Código de docente '{codigo}' ya existe.")
                         continue
 
                     docente = Docente(
                         DocenteCodigo=codigo,
                         DocenteNombre=nombre,
                         DocenteApellido=apellido,
-                        DocenteSexo=str(row['Sexo']).strip(),
-                        DocenteEstadoCivil=str(row['EstadoCivil']).strip(),
-                        DocenteFechaNacimiento=pd.to_datetime(row['FechaNacimiento'], errors='coerce'),
-                        DocenteLugarNacimiento=str(row['LugarNacimiento']).strip(),
-                        DocenteFechaIngreso=pd.to_datetime(row['FechaIngreso'], errors='coerce'),
-                        DocenteNacionalidad=str(row['Nacionalidad']).strip(),
-                        DocenteTipoIdentificacion=str(row['TipoIdentificacion']).strip(),
-                        DocenteNumeroIdentificacion=str(row['NumeroIdentificacion']).strip(),
-                        DocenteTelefono=str(row['Telefono']).strip(),
-                        DocenteCorreoElectronico=str(row['CorreoElectronico']).strip(),
-                        DocenteDireccion=str(row['Direccion']).strip(),
-                        DocenteEstado=str(row['Estado']).strip(),
-                        DocenteObservaciones=str(row['Observaciones']).strip() if pd.notna(row['Observaciones']) else '',
+                        DocenteSexo=sexo,
+                        DocenteEstadoCivil=estado_civil,
+                        DocenteFechaNacimiento=fecha_nacimiento,
+                        DocenteLugarNacimiento=lugar_nacimiento,
+                        DocenteFechaIngreso=fecha_ingreso,
+                        DocenteNacionalidad=nacionalidad,
+                        DocenteTipoIdentificacion=tipo_id,
+                        DocenteNumeroIdentificacion=num_id,
+                        DocenteTelefono=telefono,
+                        DocenteCorreoElectronico=correo,
+                        DocenteDireccion=direccion,
+                        DocenteEstado="Activo",
+                        DocenteObservaciones=observaciones,
                         Docente_UniversidadFK=universidad,
                         Docente_TipoDocenteFK=tipo,
                         Docente_CategoriaDocenteFK=categoria,
@@ -1011,17 +1075,37 @@ class ImportDocente(APIView):
                     )
                     records_to_create.append(docente)
 
+                except ValueError:
+                    continue
                 except Exception as e:
-                    failed_rows.append(f"Error inesperado en fila {index + 2}: {str(e)}")
+                    failed_rows.append(f"Error inesperado en fila {fila}: {str(e)}")
 
             if records_to_create:
                 with transaction.atomic():
                     Docente.objects.bulk_create(records_to_create)
 
+                return Response({
+                    "message": f"{len(records_to_create)} docentes importados exitosamente. "
+                               f"{len(duplicated_rows)} duplicados omitidos. "
+                               f"{len(failed_rows)} errores encontrados.",
+                    "errores": failed_rows,
+                    "duplicados": duplicated_rows
+                }, status=status.HTTP_201_CREATED)
+
+            # Sin registros creados
+            message = "No se importó ningún docente."
+            if duplicated_rows and failed_rows:
+                message += " Todos los registros eran duplicados o contenían errores."
+            elif duplicated_rows:
+                message += " Todos los registros eran duplicados."
+            elif failed_rows:
+                message += " Todos los registros tenían errores."
+
             return Response({
-                "message": f"{len(records_to_create)} docentes importados exitosamente.",
-                "errores": failed_rows
-            }, status=status.HTTP_201_CREATED if records_to_create else status.HTTP_400_BAD_REQUEST)
+                "message": message,
+                "errores": failed_rows,
+                "duplicados": duplicated_rows
+            }, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response(
@@ -1164,7 +1248,7 @@ class ImportUniversidad(APIView):
 
             required_columns = [
                 'Codigo', 'Nombre', 'Direccion', 'Telefono',
-                'Email', 'SitioWeb', 'Rector'
+                'Email', 'Sitio Web', 'Rector'
             ]
 
             missing_columns = [col for col in required_columns if col not in df.columns]
@@ -1185,7 +1269,7 @@ class ImportUniversidad(APIView):
                     direccion = str(row.get('Direccion', '')).strip()
                     telefono = str(row.get('Telefono', '')).strip()
                     email = str(row.get('Email', '')).strip()
-                    sitio_web = str(row.get('SitioWeb', '')).strip()
+                    sitio_web = str(row.get('Sitio Web', '')).strip()
                     rector = str(row.get('Rector', '')).strip()
 
                     if not all([codigo, nombre, direccion, telefono, email, sitio_web, rector]):
@@ -1250,42 +1334,70 @@ class ImportCampus(APIView):
 
             required_columns = [
                 'Codigo', 'Nombre', 'Direccion', 'Pais', 'Provincia',
-                'Ciudad', 'Telefono', 'CorreoContacto', 'Estado', 'Universidad'
+                'Ciudad', 'Telefono', 'Correo Contacto', 'Universidad'
             ]
 
             missing_columns = [col for col in required_columns if col not in df.columns]
             if missing_columns:
                 return Response(
-                    {"error": f"Faltan columnas: {', '.join(missing_columns)}"},
+                    {"error": f"Faltan columnas requeridas: {', '.join(missing_columns)}"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            universidades = {u.UniversidadNombre.strip().lower(): u for u in Universidad.objects.all()}
+            universidades = {
+                u.UniversidadNombre.strip().lower(): u
+                for u in Universidad.objects.all()
+            }
 
             records_to_create = []
             failed_rows = []
+            duplicated_rows = []
+            duplicated_names = []
 
-            for _, row in df.iterrows():
+            for index, row in df.iterrows():
+                fila = index + 2  # Número de fila real en Excel (incluyendo encabezado)
                 try:
-                    codigo = str(row['Codigo']).strip()
-                    nombre = str(row['Nombre']).strip()
-                    direccion = str(row['Direccion']).strip()
-                    pais = str(row['Pais']).strip()
-                    provincia = str(row['Provincia']).strip()
-                    ciudad = str(row['Ciudad']).strip()
-                    telefono = str(row['Telefono']).strip()
-                    correo = str(row['CorreoContacto']).strip()
-                    estado = str(row['Estado']).strip()
-                    universidad_nombre = str(row['Universidad']).strip().lower()
+                    # Extraer y limpiar campos
+                    codigo = str(row.get('Codigo', '')).strip()
+                    nombre = str(row.get('Nombre', '')).strip()
+                    direccion = str(row.get('Direccion', '')).strip()
+                    pais = str(row.get('Pais', '')).strip()
+                    provincia = str(row.get('Provincia', '')).strip()
+                    ciudad = str(row.get('Ciudad', '')).strip()
+                    telefono = str(row.get('Telefono', '')).strip()
+                    correo = str(row.get('Correo Contacto', '')).strip()
+                    universidad_nombre = str(row.get('Universidad', '')).strip().lower()
+
+                    # Validar campos vacíos de forma dinámica
+                    required_fields = {
+                        "Codigo": codigo,
+                        "Nombre": nombre,
+                        "Direccion": direccion,
+                        "Pais": pais,
+                        "Provincia": provincia,
+                        "Ciudad": ciudad,
+                        "Telefono": telefono,
+                        "Correo Contacto": correo,
+                        "Universidad": universidad_nombre,
+                    }
+
+                    for field_name, value in required_fields.items():
+                        if not value:
+                            failed_rows.append(f"Fila {fila}: El campo '{field_name}' está vacío.")
+                            raise ValueError("Campo vacío")
 
                     universidad = universidades.get(universidad_nombre)
-
-                    if not all([codigo, nombre, direccion, pais, provincia, ciudad, telefono, correo, estado, universidad]):
-                        failed_rows.append(f"Datos incompletos o universidad no encontrada en fila: {row.to_dict()}")
+                    if not universidad:
+                        failed_rows.append(f"Fila {fila}: La universidad '{row.get('Universidad', '')}' no existe.")
                         continue
 
+                    # Validar duplicados
                     if Campus.objects.filter(CampusCodigo=codigo).exists():
-                        failed_rows.append(f"Campus duplicado (código): {codigo}")
+                        duplicated_rows.append(f"Fila {fila}: El código '{codigo}' ya existe.")
+                        continue
+                    if Campus.objects.filter(CampusNombre__iexact=nombre).exists():
+                        duplicated_rows.append(f"Fila {fila}: El nombre '{nombre}' ya existe.")
+                        duplicated_names.append(nombre)
                         continue
 
                     campus = Campus(
@@ -1297,23 +1409,46 @@ class ImportCampus(APIView):
                         CampusCiudad=ciudad,
                         CampusTelefono=telefono,
                         CampusCorreoContacto=correo,
-                        CampusEstado=estado,
+                        CampusEstado='Activo',
                         Campus_UniversidadFK=universidad,
                         UsuarioRegistro=request.user.username if request.user.is_authenticated else "admin"
                     )
                     records_to_create.append(campus)
 
+                except ValueError:
+                    continue  # Ya se registró el error arriba
                 except Exception as e:
-                    failed_rows.append(f"Error en fila: {row.to_dict()} => {str(e)}")
+                    failed_rows.append(f"Error inesperado en fila {fila}: {str(e)}")
 
             if records_to_create:
                 with transaction.atomic():
                     Campus.objects.bulk_create(records_to_create)
 
+                return Response({
+                    "message": f"{len(records_to_create)} campus importados exitosamente. "
+                               f"{len(duplicated_rows)} duplicados fueron omitidos. "
+                               f"{len(failed_rows)} filas fallaron.",
+                    "errores": failed_rows,
+                    "duplicados": duplicated_rows,
+                    "nombres_duplicados": duplicated_names
+                }, status=status.HTTP_201_CREATED)
+
+            # No se importó ningún registro
+            if duplicated_rows and failed_rows:
+                message = "No se importó ningún campus. Todos los registros eran duplicados o contenían errores."
+            elif duplicated_rows:
+                message = "No se importó ningún campus. Todos los registros eran duplicados."
+            elif failed_rows:
+                message = "No se importó ningún campus. Todos los registros tenían errores."
+            else:
+                message = "No se importó ningún campus. Causa desconocida."
+
             return Response({
-                "message": f"{len(records_to_create)} campus importados exitosamente.",
-                "errores": failed_rows
-            }, status=status.HTTP_201_CREATED)
+                "message": message,
+                "errores": failed_rows,
+                "duplicados": duplicated_rows,
+                "nombres_duplicados": duplicated_names
+            }, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response(
@@ -1409,13 +1544,13 @@ class ImportFacultad(APIView):
 
             required_columns = [
                 'Codigo', 'Nombre', 'Decano', 'Direccion', 'Telefono',
-                'Email', 'Estado', 'Universidad', 'Campus'
+                'Email', 'Universidad', 'Campus'
             ]
 
             missing_columns = [col for col in required_columns if col not in df.columns]
             if missing_columns:
                 return Response(
-                    {"error": f"Faltan columnas: {', '.join(missing_columns)}"},
+                    {"error": f"Faltan columnas requeridas: {', '.join(missing_columns)}"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
@@ -1424,28 +1559,56 @@ class ImportFacultad(APIView):
 
             records_to_create = []
             failed_rows = []
+            duplicated_rows = []
+            duplicated_names = []
 
-            for _, row in df.iterrows():
+            for index, row in df.iterrows():
+                fila = index + 2
                 try:
-                    codigo = str(row['Codigo']).strip()
-                    nombre = str(row['Nombre']).strip()
-                    decano = str(row['Decano']).strip()
-                    direccion = str(row['Direccion']).strip()
-                    telefono = str(row['Telefono']).strip()
-                    email = str(row['Email']).strip()
-                    estado = str(row['Estado']).strip()
-                    universidad_nombre = str(row['Universidad']).strip().lower()
-                    campus_nombre = str(row['Campus']).strip().lower()
+                    # Limpiar campos
+                    codigo = str(row.get('Codigo', '')).strip()
+                    nombre = str(row.get('Nombre', '')).strip()
+                    decano = str(row.get('Decano', '')).strip()
+                    direccion = str(row.get('Direccion', '')).strip()
+                    telefono = str(row.get('Telefono', '')).strip()
+                    email = str(row.get('Email', '')).strip()
+                    universidad_nombre = str(row.get('Universidad', '')).strip().lower()
+                    campus_nombre = str(row.get('Campus', '')).strip().lower()
+
+                    # Validación dinámica de campos
+                    required_fields = {
+                        "Codigo": codigo,
+                        "Nombre": nombre,
+                        "Decano": decano,
+                        "Direccion": direccion,
+                        "Telefono": telefono,
+                        "Email": email,
+                        "Universidad": universidad_nombre,
+                        "Campus": campus_nombre,
+                    }
+
+                    for field, value in required_fields.items():
+                        if not value:
+                            failed_rows.append(f"Fila {fila}: El campo '{field}' está vacío.")
+                            raise ValueError("Campo vacío")
 
                     universidad = universidades.get(universidad_nombre)
                     campus = campus_map.get(campus_nombre)
 
-                    if not all([codigo, nombre, decano, direccion, telefono, email, estado, universidad, campus]):
-                        failed_rows.append(f"Datos incompletos o entidades no encontradas en fila: {row.to_dict()}")
+                    if not universidad:
+                        failed_rows.append(f"Fila {fila}: Universidad '{row.get('Universidad')}' no encontrada.")
+                        continue
+                    if not campus:
+                        failed_rows.append(f"Fila {fila}: Campus '{row.get('Campus')}' no encontrado.")
                         continue
 
+                    # Verificación de duplicados
                     if Facultad.objects.filter(FacultadCodigo=codigo).exists():
-                        failed_rows.append(f"Facultad duplicada (código): {codigo}")
+                        duplicated_rows.append(f"Fila {fila}: El código '{codigo}' ya existe.")
+                        continue
+                    if Facultad.objects.filter(FacultadNombre__iexact=nombre).exists():
+                        duplicated_rows.append(f"Fila {fila}: El nombre '{nombre}' ya existe.")
+                        duplicated_names.append(nombre)
                         continue
 
                     facultad = Facultad(
@@ -1455,30 +1618,54 @@ class ImportFacultad(APIView):
                         FacultadDireccion=direccion,
                         FacultadTelefono=telefono,
                         FacultadEmail=email,
-                        FacultadEstado=estado,
+                        FacultadEstado="Activo",
                         Facultad_UniversidadFK=universidad,
                         Facultad_CampusFK=campus,
                         UsuarioRegistro=request.user.username if request.user.is_authenticated else "admin"
                     )
                     records_to_create.append(facultad)
 
+                except ValueError:
+                    continue
                 except Exception as e:
-                    failed_rows.append(f"Error en fila: {row.to_dict()} => {str(e)}")
+                    failed_rows.append(f"Error inesperado en fila {fila}: {str(e)}")
 
             if records_to_create:
                 with transaction.atomic():
                     Facultad.objects.bulk_create(records_to_create)
 
+                return Response({
+                    "message": f"{len(records_to_create)} facultades importadas exitosamente. "
+                               f"{len(duplicated_rows)} duplicados fueron omitidos. "
+                               f"{len(failed_rows)} filas fallaron.",
+                    "errores": failed_rows,
+                    "duplicados": duplicated_rows,
+                    "nombres_duplicados": duplicated_names
+                }, status=status.HTTP_201_CREATED)
+
+            # Ningún registro fue creado
+            if duplicated_rows and failed_rows:
+                message = "No se importó ninguna facultad. Todos los registros eran duplicados o contenían errores."
+            elif duplicated_rows:
+                message = "No se importó ninguna facultad. Todos los registros eran duplicados."
+            elif failed_rows:
+                message = "No se importó ninguna facultad. Todos los registros tenían errores."
+            else:
+                message = "No se importó ninguna facultad. Causa desconocida."
+
             return Response({
-                "message": f"{len(records_to_create)} facultades importadas exitosamente.",
-                "errores": failed_rows
-            }, status=status.HTTP_201_CREATED)
+                "message": message,
+                "errores": failed_rows,
+                "duplicados": duplicated_rows,
+                "nombres_duplicados": duplicated_names
+            }, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response(
                 {"error": f"Error inesperado: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
 
 class ImportCategoriaDocente(APIView):
     parser_classes = [MultiPartParser, FormParser]
@@ -1486,67 +1673,115 @@ class ImportCategoriaDocente(APIView):
     def post(self, request, *args, **kwargs):
         excel_file = request.FILES.get('excel_file')
         if not excel_file:
-            return Response({"error": "No se envió ningún archivo Excel"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "No se envió ningún archivo Excel"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
             df = pd.read_excel(excel_file)
 
-            required_columns = ['Codigo', 'Nombre', 'Estado', 'Universidad']
+            required_columns = ['Codigo', 'Nombre', 'Universidad']
             missing_columns = [col for col in required_columns if col not in df.columns]
             if missing_columns:
                 return Response(
-                    {"error": f"Faltan columnas: {', '.join(missing_columns)}"},
+                    {"error": f"Faltan columnas requeridas: {', '.join(missing_columns)}"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            universidades = {u.UniversidadNombre.strip().lower(): u for u in Universidad.objects.all()}
+            universidades = {
+                u.UniversidadNombre.strip().lower(): u for u in Universidad.objects.all()
+            }
 
             records_to_create = []
             failed_rows = []
+            duplicated_rows = []
+            duplicated_names = []
 
-            for _, row in df.iterrows():
+            for index, row in df.iterrows():
+                fila = index + 2  # Excel row number (1-based + header)
+
                 try:
-                    codigo = str(row['Codigo']).strip()
-                    nombre = str(row['Nombre']).strip()
-                    estado = str(row['Estado']).strip()
-                    universidad_nombre = str(row['Universidad']).strip().lower()
+                    codigo = str(row.get('Codigo', '')).strip()
+                    nombre = str(row.get('Nombre', '')).strip()
+                    universidad_nombre = str(row.get('Universidad', '')).strip().lower()
+
+                    # Validar campos vacíos
+                    required_fields = {
+                        "Codigo": codigo,
+                        "Nombre": nombre,
+                        "Universidad": universidad_nombre,
+                    }
+
+                    for field, value in required_fields.items():
+                        if not value:
+                            failed_rows.append(f"Fila {fila}: El campo '{field}' está vacío.")
+                            raise ValueError("Campo vacío")
 
                     universidad = universidades.get(universidad_nombre)
-
-                    if not all([codigo, nombre, estado, universidad]):
-                        failed_rows.append(f"Datos incompletos o universidad no encontrada en fila: {row.to_dict()}")
+                    if not universidad:
+                        failed_rows.append(f"Fila {fila}: Universidad '{row.get('Universidad')}' no encontrada.")
                         continue
 
+                    # Validar duplicados
                     if CategoriaDocente.objects.filter(categoriaCodigo=codigo).exists():
-                        failed_rows.append(f"Categoría duplicada (código): {codigo}")
+                        duplicated_rows.append(f"Fila {fila}: El código '{codigo}' ya existe.")
+                        continue
+                    if CategoriaDocente.objects.filter(CategoriaNombre__iexact=nombre).exists():
+                        duplicated_rows.append(f"Fila {fila}: El nombre '{nombre}' ya existe.")
+                        duplicated_names.append(nombre)
                         continue
 
                     categoria = CategoriaDocente(
                         categoriaCodigo=codigo,
                         CategoriaNombre=nombre,
-                        CategoriaEstado=estado,
+                        CategoriaEstado="Activo",
                         Categoria_UniversidadFK=universidad,
                         UsuarioRegistro=request.user.username if request.user.is_authenticated else "admin"
                     )
                     records_to_create.append(categoria)
 
+                except ValueError:
+                    continue
                 except Exception as e:
-                    failed_rows.append(f"Error en fila: {row.to_dict()} => {str(e)}")
+                    failed_rows.append(f"Error inesperado en fila {fila}: {str(e)}")
 
             if records_to_create:
                 with transaction.atomic():
                     CategoriaDocente.objects.bulk_create(records_to_create)
 
+                return Response({
+                    "message": f"{len(records_to_create)} categorías importadas exitosamente. "
+                               f"{len(duplicated_rows)} duplicados fueron omitidos. "
+                               f"{len(failed_rows)} filas fallaron.",
+                    "errores": failed_rows,
+                    "duplicados": duplicated_rows,
+                    "nombres_duplicados": duplicated_names
+                }, status=status.HTTP_201_CREATED)
+
+            # Ningún registro fue creado
+            if duplicated_rows and failed_rows:
+                message = "No se importó ninguna categoría. Todos los registros eran duplicados o contenían errores."
+            elif duplicated_rows:
+                message = "No se importó ninguna categoría. Todos los registros eran duplicados."
+            elif failed_rows:
+                message = "No se importó ninguna categoría. Todos los registros tenían errores."
+            else:
+                message = "No se importó ninguna categoría. Causa desconocida."
+
             return Response({
-                "message": f"{len(records_to_create)} categorías importadas exitosamente.",
-                "errores": failed_rows
-            }, status=status.HTTP_201_CREATED)
+                "message": message,
+                "errores": failed_rows,
+                "duplicados": duplicated_rows,
+                "nombres_duplicados": duplicated_names
+            }, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response(
                 {"error": f"Error inesperado: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
             
 class ImportTipoDocente(APIView):
     parser_classes = [MultiPartParser, FormParser]
@@ -1559,34 +1794,53 @@ class ImportTipoDocente(APIView):
         try:
             df = pd.read_excel(excel_file)
 
-            required_columns = ['Codigo', 'Descripcion', 'Estado', 'Universidad']
+            required_columns = ['Codigo', 'Descripcion', 'Universidad']
             missing_columns = [col for col in required_columns if col not in df.columns]
             if missing_columns:
                 return Response(
-                    {"error": f"Faltan columnas: {', '.join(missing_columns)}"},
+                    {"error": f"Faltan columnas requeridas: {', '.join(missing_columns)}"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            universidades = {u.UniversidadNombre.strip().lower(): u for u in Universidad.objects.all()}
+            universidades = {
+                u.UniversidadNombre.strip().lower(): u
+                for u in Universidad.objects.all()
+            }
 
             records_to_create = []
             failed_rows = []
+            duplicated_rows = []
+            duplicated_codigos = []
 
-            for _, row in df.iterrows():
+            for index, row in df.iterrows():
+                fila = index + 2  # Índice real de fila en Excel
                 try:
-                    codigo = str(row['Codigo']).strip()
-                    descripcion = str(row['Descripcion']).strip()
-                    estado = str(row['Estado']).strip()
-                    universidad_nombre = str(row['Universidad']).strip().lower()
+                    codigo = str(row.get('Codigo', '')).strip()
+                    descripcion = str(row.get('Descripcion', '')).strip()
+                
+                    universidad_nombre = str(row.get('Universidad', '')).strip().lower()
+
+                    # Validación de campos vacíos
+                    required_fields = {
+                        "Codigo": codigo,
+                        "Descripcion": descripcion,
+                        "Universidad": universidad_nombre,
+                    }
+
+                    for field, value in required_fields.items():
+                        if not value:
+                            failed_rows.append(f"Fila {fila}: El campo '{field}' está vacío.")
+                            raise ValueError("Campo vacío")
 
                     universidad = universidades.get(universidad_nombre)
-
-                    if not all([codigo, descripcion, estado, universidad]):
-                        failed_rows.append(f"Datos incompletos o universidad no encontrada en fila: {row.to_dict()}")
+                    if not universidad:
+                        failed_rows.append(f"Fila {fila}: Universidad '{row.get('Universidad')}' no encontrada.")
                         continue
 
+                    # Verificar duplicados
                     if TipoDocente.objects.filter(TipoDocenteCodigo=codigo).exists():
-                        failed_rows.append(f"TipoDocente duplicado (código): {codigo}")
+                        duplicated_rows.append(f"Fila {fila}: El código '{codigo}' ya existe.")
+                        duplicated_codigos.append(codigo)
                         continue
 
                     tipo_docente = TipoDocente(
@@ -1598,23 +1852,47 @@ class ImportTipoDocente(APIView):
                     )
                     records_to_create.append(tipo_docente)
 
+                except ValueError:
+                    continue  # Ya registrado como error
                 except Exception as e:
-                    failed_rows.append(f"Error en fila: {row.to_dict()} => {str(e)}")
+                    failed_rows.append(f"Error inesperado en fila {fila}: {str(e)}")
 
             if records_to_create:
                 with transaction.atomic():
                     TipoDocente.objects.bulk_create(records_to_create)
 
+                return Response({
+                    "message": f"{len(records_to_create)} tipos de docente importados exitosamente. "
+                               f"{len(duplicated_rows)} duplicados fueron omitidos. "
+                               f"{len(failed_rows)} filas fallaron.",
+                    "errores": failed_rows,
+                    "duplicados": duplicated_rows,
+                    "codigos_duplicados": duplicated_codigos
+                }, status=status.HTTP_201_CREATED)
+
+            # Si no se creó ningún registro
+            if duplicated_rows and failed_rows:
+                message = "No se importó ningún tipo de docente. Todos los registros eran duplicados o tenían errores."
+            elif duplicated_rows:
+                message = "No se importó ningún tipo de docente. Todos los registros eran duplicados."
+            elif failed_rows:
+                message = "No se importó ningún tipo de docente. Todos los registros tenían errores."
+            else:
+                message = "No se importó ningún tipo de docente. Causa desconocida."
+
             return Response({
-                "message": f"{len(records_to_create)} tipos de docente importados exitosamente.",
-                "errores": failed_rows
-            }, status=status.HTTP_201_CREATED)
+                "message": message,
+                "errores": failed_rows,
+                "duplicados": duplicated_rows,
+                "codigos_duplicados": duplicated_codigos
+            }, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response(
                 {"error": f"Error inesperado: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
 #endregion
 
 @api_view(['GET'])

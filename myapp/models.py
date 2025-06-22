@@ -75,7 +75,7 @@ class Facultad(models.Model):
     Facultad_CampusFK = models.ForeignKey(Campus, on_delete=models.CASCADE)
 
     def __str__(self):
-        return self.nombre
+        return self.FacultadNombre
 
     class Meta:
         indexes = [

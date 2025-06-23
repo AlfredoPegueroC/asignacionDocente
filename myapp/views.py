@@ -201,6 +201,9 @@ def get_Universidad(request):
     return getAll(request, Universidad, UniversidadSerializer)
 
 @api_view(['GET'])
+def get_Campus(request):
+    return getAll(request, Campus, CampusSerializer)
+@api_view(['GET'])
 def get_Facultad(request):
     return getAll(request, Facultad, FacultadSerializer)
 
@@ -234,6 +237,20 @@ def update_universidad(request, pk):
 
     if request.method in ['PUT', 'PATCH']:
         ser = UniversidadSerializer(universidad, data=request.data, partial=(request.method == 'PATCH'))
+        if ser.is_valid():
+            ser.save()
+            return JsonResponse(ser.data, status=status.HTTP_200_OK)
+        return JsonResponse(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+@api_view(['PUT', 'PATCH'])
+def update_campus(request, codigo):
+    try:
+        campus = Campus.objects.get(CampusCodigo=codigo)
+    except Campus.DoesNotExist:
+        return JsonResponse({'error': 'Campus not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method in ['PUT', 'PATCH']:
+        ser = CampusSerializer(campus, data=request.data, partial=(request.method == 'PATCH'))
         if ser.is_valid():
             ser.save()
             return JsonResponse(ser.data, status=status.HTTP_200_OK)

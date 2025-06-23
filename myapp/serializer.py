@@ -66,7 +66,9 @@ class UniversidadSerializer(serializers.ModelSerializer):
 
 class CampusSerializer(serializers.ModelSerializer):
     Campus_UniversidadFK= serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
-    
+    universidadNombre = serializers.CharField(
+        source='Campus_UniversidadFK.UniversidadNombre', read_only=True
+    )
     class Meta:
         model = Campus
         fields = [
@@ -82,6 +84,7 @@ class CampusSerializer(serializers.ModelSerializer):
             'CampusFechaRegistro',
             'UsuarioRegistro',
             'CampusEstado',
+            'universidadNombre',
             'Campus_UniversidadFK',
         ]
 # Facultad Serializer

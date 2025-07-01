@@ -581,6 +581,7 @@ def logout_view(request):
 #region export
 
 
+
 @api_view(["GET"])
 def UniversidadExport(request):
     queryset = Universidad.objects.all()
@@ -597,11 +598,23 @@ def UniversidadExport(request):
             'Rector': universidad.UniversidadRector,
         })
 
+    columns = [
+        'Codigo',
+        'Nombre',
+        'Direccion',
+        'Telefono',
+        'Email',
+        'Sitio Web',
+        'Rector',
+    ]
+
+    df = pd.DataFrame(data, columns=columns)
+
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = 'attachment; filename="universidades.xlsx"'
 
     with pd.ExcelWriter(response, engine='openpyxl') as writer:
-        pd.DataFrame(data).to_excel(writer, sheet_name='Universidades', index=False)
+        df.to_excel(writer, sheet_name='Universidades', index=False)
 
     return response
 
@@ -857,11 +870,25 @@ def PeriodoAcademicoExport(request):
             'Universidad Nombre': periodo.Periodo_UniversidadFK.UniversidadNombre if periodo.Periodo_UniversidadFK else ''
         })
 
+    columns = [
+        'ID',
+        'Código',
+        'Nombre',
+        'Tipo',
+        'Año',
+        'Fecha Inicio',
+        'Fecha Fin',
+        'Estado',
+        'Universidad Nombre'
+    ]
+
+    df = pd.DataFrame(data, columns=columns)
+
     response = HttpResponse(content_type='application/vnd.ms-excel')
     response['Content-Disposition'] = 'attachment; filename="PeriodoAcademico_data.xlsx"'
 
     with pd.ExcelWriter(response, engine='openpyxl') as writer:
-        pd.DataFrame(data).to_excel(writer, sheet_name='Periodos', index=False)
+        df.to_excel(writer, sheet_name='Periodos', index=False)
 
     return response
 
@@ -903,13 +930,35 @@ def asignacionDocenteExport(request):
             "Creditos": asignacion.creditos,
         })
 
+    columns = [
+        "NRC",
+        "Clave",
+        "Asignatura",
+        "Codigo",
+        "Profesor",
+        "Seccion",
+        "Modalidad",
+        "Campus",
+        "Facultad",
+        "Escuela",
+        "Tipo",
+        "Cupo",
+        "Inscripto",
+        "Horario",
+        "Dias",
+        "Aula",
+        "Creditos",
+    ]
+
+    df = pd.DataFrame(data, columns=columns)
+
     # Crear respuesta en Excel
     response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     filename = f'Asignacion_{period if period else "todos"}.xlsx'
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
     with pd.ExcelWriter(response, engine="openpyxl") as writer:
-        pd.DataFrame(data).to_excel(writer, sheet_name="Sheet1", index=False)
+        df.to_excel(writer, sheet_name="Asignaciones", index=False)
 
     return response
 #endregion

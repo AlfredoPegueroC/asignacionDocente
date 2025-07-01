@@ -624,11 +624,25 @@ def CampusExport(request):
             "Universidad": campus.Campus_UniversidadFK.UniversidadNombre if campus.Campus_UniversidadFK else "---",
         })
 
+    columns = [
+        "Codigo",
+        "Nombre",
+        "Direccion",
+        "Pais",
+        "Provincia",
+        "Ciudad",
+        "Telefono",
+        "Correo Contacto",
+        "Universidad"
+    ]
+
+    df = pd.DataFrame(data, columns=columns)
+
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = 'attachment; filename="campus.xlsx"'
 
     with pd.ExcelWriter(response, engine='openpyxl') as writer:
-        pd.DataFrame(data).to_excel(writer, sheet_name='Campus', index=False)
+        df.to_excel(writer, sheet_name='Campus', index=False)
 
     return response
 
@@ -650,7 +664,18 @@ def FacultadExport(request):
             "Campus": facultad.Facultad_CampusFK.CampusNombre if facultad.Facultad_CampusFK else "—",
         })
 
-    df = pd.DataFrame(data)
+    columns = [
+        "Codigo",
+        "Nombre",
+        "Decano",
+        "Direccion",
+        "Telefono",
+        "Email",
+        "Universidad",
+        "Campus"
+    ]
+
+    df = pd.DataFrame(data, columns=columns)
 
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -661,6 +686,7 @@ def FacultadExport(request):
         df.to_excel(writer, sheet_name='Facultades', index=False)
 
     return response
+
 
 
 @api_view(["GET"])
@@ -679,11 +705,23 @@ def EscuelaExport(request):
             'Facultad': escuela.Escuela_facultadFK.FacultadNombre if escuela.Escuela_facultadFK else "—",
         })
 
+    columns = [
+        'Codigo',
+        'Nombre',
+        'Directora',
+        'Telefono',
+        'Correo',
+        'Universidad',
+        'Facultad',
+    ]
+
+    df = pd.DataFrame(data, columns=columns)
+
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = 'attachment; filename="escuelas.xlsx"'
 
     with pd.ExcelWriter(response, engine='openpyxl') as writer:
-        pd.DataFrame(data).to_excel(writer, sheet_name='Escuelas', index=False)
+        df.to_excel(writer, sheet_name='Escuelas', index=False)
 
     return response
 
@@ -719,13 +757,37 @@ def DocenteExport(request):
             "CategoriaDocente": d.Docente_CategoriaDocenteFK.CategoriaNombre if d.Docente_CategoriaDocenteFK else "",
         })
 
+    columns = [
+        "Codigo",
+        "Nombre",
+        "Apellido",
+        "Sexo",
+        "EstadoCivil",
+        "FechaNacimiento",
+        "LugarNacimiento",
+        "FechaIngreso",
+        "Nacionalidad",
+        "TipoIdentificacion",
+        "NumeroIdentificacion",
+        "Telefono",
+        "CorreoElectronico",
+        "Direccion",
+        "Observaciones",
+        "Universidad",
+        "TipoDocente",
+        "CategoriaDocente"
+    ]
+
+    df = pd.DataFrame(data, columns=columns)
+
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = 'attachment; filename="docentes.xlsx"'
 
     with pd.ExcelWriter(response, engine='openpyxl') as writer:
-        pd.DataFrame(data).to_excel(writer, sheet_name='Docentes', index=False)
+        df.to_excel(writer, sheet_name='Docentes', index=False)
 
     return response
+
 @api_view(["GET"])
 def CategoriaDocenteExport(request):
     queryset = CategoriaDocente.objects.select_related("Categoria_UniversidadFK").all()
@@ -733,19 +795,21 @@ def CategoriaDocenteExport(request):
 
     for categoria in queryset:
         data.append({
-            'Codigo': categoria.categoriaCodigo,
+            'Codigo': categoria.CategoriaCodigo,
             'Nombre': categoria.CategoriaNombre,
             'Universidad': categoria.Categoria_UniversidadFK.UniversidadNombre if categoria.Categoria_UniversidadFK else "—"
         })
+
+    columns = ['Codigo', 'Nombre', 'Universidad']
+    df = pd.DataFrame(data, columns=columns)
 
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = 'attachment; filename="categoria_docente.xlsx"'
 
     with pd.ExcelWriter(response, engine='openpyxl') as writer:
-        pd.DataFrame(data).to_excel(writer, sheet_name='Categorías', index=False)
+        df.to_excel(writer, sheet_name='Categorías', index=False)
 
     return response
-
 
 @api_view(["GET"])
 def TipoDocenteExport(request):
@@ -754,37 +818,52 @@ def TipoDocenteExport(request):
 
     for tipo in queryset:
         data.append({
-            'Código': tipo.TipoDocenteCodigo,
-            'Descripción': tipo.TipoDocenteDescripcion,
-            'Universidad': tipo.TipoDocente_UniversidadFK.UniversidadNombre if tipo.TipoDocente_UniversidadFK else "—"
+            'Codigo': tipo.TipoDocenteCodigo,
+            'Descripcion': tipo.TipoDocenteDescripcion,
+            'Universidad': tipo.TipoDocente_UniversidadFK.UniversidadNombre if tipo.TipoDocente_UniversidadFK else '—'
         })
+
+    columns = [
+        'Codigo',
+        'Descripcion',
+        'Universidad',
+    ]
+
+    df = pd.DataFrame(data, columns=columns)
 
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = 'attachment; filename="tipo_docente.xlsx"'
 
     with pd.ExcelWriter(response, engine='openpyxl') as writer:
-        pd.DataFrame(data).to_excel(writer, sheet_name='TipoDocente', index=False)
+        df.to_excel(writer, sheet_name='TipoDocente', index=False)
 
     return response
 
 @api_view(["GET"])
 def PeriodoAcademicoExport(request):
-    queryset = PeriodoAcademico.objects.all()
+    queryset = PeriodoAcademico.objects.select_related('Periodo_UniversidadFK').all()
     data = []
 
     for periodo in queryset:
         data.append({
-            'Nombre': periodo.nombre,
-            'Estado': periodo.estado,
-            'Universidad': periodo.UniversidadCodigo.nombre
+            'ID': periodo.PeriodoID,
+            'Código': periodo.PeriodoCodigo,
+            'Nombre': periodo.PeriodoNombre,
+            'Tipo': periodo.PeriodoTipo,
+            'Año': periodo.PeriodoAnio,
+            'Fecha Inicio': periodo.PeriodoFechaInicio,
+            'Fecha Fin': periodo.PeriodoFechaFin,
+            'Estado': periodo.PeriodoEstado,
+            'Universidad Nombre': periodo.Periodo_UniversidadFK.UniversidadNombre if periodo.Periodo_UniversidadFK else ''
         })
+
     response = HttpResponse(content_type='application/vnd.ms-excel')
     response['Content-Disposition'] = 'attachment; filename="PeriodoAcademico_data.xlsx"'
-    
-    with pd.ExcelWriter(response, engine='openpyxl') as writer:
-        pd.DataFrame(data).to_excel(writer, sheet_name='Sheet1', index=False)
-    return response
 
+    with pd.ExcelWriter(response, engine='openpyxl') as writer:
+        pd.DataFrame(data).to_excel(writer, sheet_name='Periodos', index=False)
+
+    return response
 
 
 @api_view(["GET"])
@@ -1863,7 +1942,7 @@ class ImportTipoDocente(APIView):
                     tipo_docente = TipoDocente(
                         TipoDocenteCodigo=codigo,
                         TipoDocenteDescripcion=descripcion,
-                        TipoDocenteEstado=estado,
+                        TipoDocenteEstado="Activo",
                         TipoDocente_UniversidadFK=universidad,
                         UsuarioRegistro=request.user.username if request.user.is_authenticated else "admin"
                     )

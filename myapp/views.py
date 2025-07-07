@@ -2175,3 +2175,62 @@ def copiar_asignaciones(request):
         import traceback
         traceback.print_exc()
         return Response({"error": str(e)}, status=500)
+    
+    
+    
+# @permission_classes([IsAuthenticated])    
+@api_view(["GET"])
+def dashboard_data(request):
+    # Último período académico
+    periodo_actual = PeriodoAcademico.objects.order_by("-PeriodoID").first()
+    if not periodo_actual:
+        return Response({"error": "No hay períodos registrados."}, status=404)
+
+    # Asignaciones filtradas por el período actual
+    asignaciones = AsignacionDocente.objects.filter(periodoFk=periodo_actual)
+
+    # Métricas generales
+    data = {
+        "periodoActual": periodo_actual.PeriodoNombre,
+        "totalAsignaciones": asignaciones.count(),
+        "totalDocentes": asignaciones.values("docenteFk").distinct().count(),
+        "totalErrores": asignaciones.filter(accion__in=["Error", "Incompleto", "Pendiente"]).count(),
+
+        # Totales globales del sistema (para DashboardCard)
+        "totalFacultades": Facultad.objects.count(),
+        "totalEscuelas": Escuela.objects.count(),
+        "totalUniversidades": Universidad.objects.count(),
+        "totalCampus": Campus.objects.count(),
+        "totalCategorias": CategoriaDocente.objects.count(),
+        "totalTiposDocente": TipoDocente.objects.count(),
+    }
+
+    # Gráfico: Asignaciones por Facultad
+    asignaciones_por_facultad = asignaciones.values(
+        "facultadFk__FacultadNombre"
+    ).annotate(total=Count("AsignacionID"))
+
+    data["asignacionesPorFacultad"] = {
+        "labels": [f["facultadFk__FacultadNombre"] for f in asignaciones_por_facultad],
+        "datasets": [{
+            "label": "Asignaciones",
+            "data": [f["total"] for f in asignaciones_por_facultad],
+            "backgroundColor": "#3B82F6"
+        }]
+    }
+
+    # Gráfico: Docentes por categoría
+    docentes_categoria = Docente.objects.values(
+        "Docente_CategoriaDocenteFK__CategoriaNombre"
+    ).annotate(total=Count("DocenteID"))
+
+    data["docentesPorCategoria"] = {
+        "labels": [d["Docente_CategoriaDocenteFK__CategoriaNombre"] or "No definida" for d in docentes_categoria],
+        "datasets": [{
+            "label": "Docentes",
+            "data": [d["total"] for d in docentes_categoria],
+            "backgroundColor": ["#10B981", "#60A5FA", "#F59E0B", "#EF4444", "#A855F7"]
+        }]
+    }
+
+    return Response(data)

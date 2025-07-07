@@ -28,7 +28,7 @@ from .models import (
     AsignacionDocente,
     APILog
     )
-from .handles import createHandle, getAllHandle, deleteHandler,getAllHandle_asignacion, getAll
+from .handles import createHandle, getAllHandle, deleteHandler,getAllHandle_asignacion, getAll, updateHandle
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view
 from rest_framework.views import APIView

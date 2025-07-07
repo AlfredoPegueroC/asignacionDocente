@@ -135,18 +135,20 @@ def getAllHandle_asignacion(request, modelData, serializer_class):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
         
-def updateHandle(request, modelData, serializers, pk):
+def updateHandle(request, modelData, serializerClass, pk):
     try:
-        universidad = modelData.objects.get(pk=pk)
-    except modelData.DoesNotExist:
-        return JsonResponse({'error': 'Universidad not found'}, status=status.HTTP_404_NOT_FOUND)
+        instance = get_object_or_404(modelData, pk=pk)
+        partial = request.method == 'PATCH'
+        serializer = serializerClass(instance, data=request.data, partial=partial)
 
-    if request.method in ['PUT', 'PATCH']:
-        ser = serializers(universidad, data=request.data, partial=(request.method == 'PATCH'))
-        if ser.is_valid():
-            ser.save()
-            return JsonResponse(ser.data, status=status.HTTP_200_OK)
-        return JsonResponse(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    except Exception as e:
+        # Esto ayuda a depurar si algo falla
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 def deleteHandler(request, pk, modelData):
     try:

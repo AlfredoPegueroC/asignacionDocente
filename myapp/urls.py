@@ -8,6 +8,7 @@ from django.conf.urls.static import static
 urlpatterns = [
     #URLS CREATE
     path('', views.index, name='index'),
+    path('api/protegida/', views.vista_protegida, name='vista_protegida'),
     path('api/usuarios', views.UserListView.as_view(), name='user-list'),
     path('api/registro', views.RegistroUsuarioAPI.as_view(), name='registro'),
     path('api/logs/', views.APILogList.as_view(), name='api-logs'),

@@ -30,7 +30,7 @@ from .models import (
     )
 from .handles import createHandle, getAllHandle, deleteHandler,getAllHandle_asignacion, getAll, updateHandle
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
@@ -44,15 +44,21 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Sum, Count
 from rest_framework_simplejwt.tokens import RefreshToken,TokenError
 import pandas as pd
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.generics import ListAPIView
 from rest_framework.filters import SearchFilter
 from django.shortcuts import redirect
 
+
 # Create your views here.
 def index(request):
     return redirect('/admin/')
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def vista_protegida(request):
+    return Response({"mensaje": f"Hola {request.user.username}, estás autenticado"})
 
 class UserListView(APIView):
     def get(self, request):
@@ -159,67 +165,89 @@ def getAllUniversidad(request):
   return getAllHandle(request, Universidad, UniversidadSerializer)
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def getAllCampus(request):
     return getAllHandle(request, Campus, CampusSerializer)
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def getAllFacultad(request):
   return getAllHandle(request, Facultad, FacultadSerializer)
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def getAllEscuela(request):
   return getAllHandle(request, Escuela, EscuelaSerializer)
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def getAllTipoDocente(request):
   return getAllHandle(request, TipoDocente, TipoDocenteSerializer)
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def getAllCategoriaDocente(request):
   return getAllHandle(request, CategoriaDocente, CategoriaDocenteSerializer)
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def getAllDocente(request):
   return getAllHandle(request, Docente, DocenteSerializer)
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def getAllPeriodoAcademico(request):
   return getAllHandle(request, PeriodoAcademico, PeriodoAcademicoSerializer)
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def getAllAsignacion(request):
   return getAllHandle_asignacion(request, AsignacionDocente, AsignacionDocenteSerializer)
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def getAllAsignacion_frontend(request):
   return getAllHandle_asignacion(request,AsignacionDocente,AsignacionDocenteSerializer_frontend)
 
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def get_Universidad(request):
     return getAll(request, Universidad, UniversidadSerializer)
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def get_Campus(request):
     return getAll(request, Campus, CampusSerializer)
+
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def get_Facultad(request):
     return getAll(request, Facultad, FacultadSerializer)
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def get_Escuela(request):
     return getAll(request, Escuela, EscuelaSerializer)
+
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def get_TipoDocente(request):
     return getAll(request, TipoDocente, TipoDocenteSerializer)
+
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def get_CategoriaDocente(request):
     return getAll(request, CategoriaDocente, CategoriaDocenteSerializer)
+
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def get_Docente(request):
     return getAll(request, Docente, DocenteSerializer)
+
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def get_PeriodoAcademico(request):
     return getAll(request, PeriodoAcademico, PeriodoAcademicoSerializer)
 #endregion
@@ -537,6 +565,7 @@ def details_Asignacion(request, pk):
 
 #region Auth
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def login_view(request):
     username = request.data.get('username')
     password = request.data.get('password')
@@ -544,7 +573,8 @@ def login_view(request):
     if not username or not password:
         return Response({'error': 'Username and password are required'}, status=status.HTTP_400_BAD_REQUEST)
 
-    user = authenticate(username=username, password=password)
+    user = authenticate(request, username=username, password=password)
+    print(user)
     if user is not None:
         refresh = RefreshToken.for_user(user)
         user_data = UserSerializer(user).data
@@ -558,6 +588,7 @@ def login_view(request):
     return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def logout_view(request):
     try:
         # Retrieve the refresh token from the request data

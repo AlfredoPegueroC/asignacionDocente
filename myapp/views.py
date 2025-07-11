@@ -612,8 +612,9 @@ def logout_view(request):
 #region export
 
 
-
+# CAMBIAR PARA QUE SEA NECESARIO LA AUTORIZACION PARA EXPORTAR
 @api_view(["GET"])
+@permission_classes([AllowAny])
 def UniversidadExport(request):
     queryset = Universidad.objects.all()
     data = []
@@ -651,6 +652,7 @@ def UniversidadExport(request):
 
 
 @api_view(["GET"])
+@permission_classes([AllowAny])
 def CampusExport(request):
     queryset = Campus.objects.select_related("Campus_UniversidadFK").all()
     data = []
@@ -692,6 +694,7 @@ def CampusExport(request):
 
 
 @api_view(["GET"])
+@permission_classes([AllowAny])
 def FacultadExport(request):
     queryset = Facultad.objects.select_related("Facultad_UniversidadFK", "Facultad_CampusFK").all()
     data = []
@@ -734,6 +737,7 @@ def FacultadExport(request):
 
 
 @api_view(["GET"])
+@permission_classes([AllowAny])
 def EscuelaExport(request):
     queryset = Escuela.objects.select_related("Escuela_UniversidadFK", "Escuela_facultadFK").all()
     data = []
@@ -770,6 +774,7 @@ def EscuelaExport(request):
     return response
 
 @api_view(["GET"])
+@permission_classes([AllowAny])
 def DocenteExport(request):
     queryset = Docente.objects.select_related(
         "Docente_UniversidadFK",
@@ -833,6 +838,7 @@ def DocenteExport(request):
     return response
 
 @api_view(["GET"])
+@permission_classes([AllowAny])
 def CategoriaDocenteExport(request):
     queryset = CategoriaDocente.objects.select_related("Categoria_UniversidadFK").all()
     data = []
@@ -856,6 +862,7 @@ def CategoriaDocenteExport(request):
     return response
 
 @api_view(["GET"])
+@permission_classes([AllowAny])
 def TipoDocenteExport(request):
     queryset = TipoDocente.objects.select_related("TipoDocente_UniversidadFK").all()
     data = []
@@ -884,6 +891,7 @@ def TipoDocenteExport(request):
     return response
 
 @api_view(["GET"])
+@permission_classes([AllowAny])
 def PeriodoAcademicoExport(request):
     queryset = PeriodoAcademico.objects.select_related('Periodo_UniversidadFK').all()
     data = []
@@ -925,6 +933,7 @@ def PeriodoAcademicoExport(request):
 
 
 @api_view(["GET"])
+@permission_classes([AllowAny])
 def asignacionDocenteExport(request):
     # Obtener el periodo desde la solicitud
     period = request.GET.get("period")

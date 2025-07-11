@@ -110,6 +110,7 @@ class LogPagination(PageNumberPagination):
     page_size = 10
     page_size_query_param = 'page_size'
 
+@permission_classes([AllowAny])
 class APILogList(ListAPIView):
     queryset = APILog.objects.all().order_by('-timestamp')
     serializer_class = APILogSerializer

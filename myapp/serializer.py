@@ -43,9 +43,14 @@ class RegistroUsuarioSerializer(serializers.ModelSerializer):
 
 
 class APILogSerializer(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField()
+
     class Meta:
         model = APILog
-        fields = '__all__'
+        fields = ['id', 'method', 'path', 'status_code', 'timestamp', 'message', 'user']
+
+    def get_user(self, obj):
+        return obj.user.username if obj.user else "Anónimo"
 # Universidad Serializer
 class UniversidadSerializer(serializers.ModelSerializer):
     class Meta:

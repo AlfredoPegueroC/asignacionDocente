@@ -10,7 +10,7 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email','first_name', 'last_name',  'is_staff', 'is_active','groups']
 
 class RegistroUsuarioSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
+    password = serializers.CharField(write_only=True, required=False)
     is_staff = serializers.BooleanField(default=False)
 
     class Meta:
@@ -19,7 +19,6 @@ class RegistroUsuarioSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         is_staff = validated_data.pop('is_staff', False)
-
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data.get('email', ''),
@@ -28,7 +27,6 @@ class RegistroUsuarioSerializer(serializers.ModelSerializer):
             last_name=validated_data.get('last_name', '')
         )
 
-        # Marcar como staff y superuser si corresponde
         if is_staff:
             user.is_staff = True
             user.is_superuser = True
@@ -41,6 +39,26 @@ class RegistroUsuarioSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
+    def update(self, instance, validated_data):
+        if 'password' in validated_data:
+            instance.set_password(validated_data.pop('password'))
+
+        is_staff = validated_data.pop('is_staff', None)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        # Cambiar grupo si se modifica is_staff
+        if is_staff is not None:
+            instance.is_staff = is_staff
+            instance.is_superuser = is_staff
+            instance.groups.clear()
+            group_name = "admin" if is_staff else "usuario"
+            group, _ = Group.objects.get_or_create(name=group_name)
+            instance.groups.add(group)
+
+        instance.save()
+        return instance
 
 class APILogSerializer(serializers.ModelSerializer):
     user = serializers.SerializerMethodField()

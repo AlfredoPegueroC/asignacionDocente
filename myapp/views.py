@@ -60,14 +60,24 @@ def index(request):
 def vista_protegida(request):
     return Response({"mensaje": f"Hola {request.user.username}, estás autenticado"})
 
+
+class CustomUserPagination(PageNumberPagination):
+    page_size = 10  # Valor por defecto
+    page_size_query_param = 'page_size'  # Permite usar ?page_size=25 o 50 desde el frontend
+    max_page_size = 100
+
+@permission_classes([AllowAny])
 class UserListView(APIView):
+    
     def get(self, request):
         try:
             users = User.objects.all()
-            serializer = UserSerializer(users, many=True)
-            return Response(serializer.data)
+            paginator = CustomUserPagination()
+            paginated_users = paginator.paginate_queryset(users, request)
+            serializer = UserSerializer(paginated_users, many=True)
+            return paginator.get_paginated_response(serializer.data)
         except Exception as e:
-            return Response({'error': str(e)}, status=500) 
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class RegistroUsuarioAPI(APIView):
     def post(self, request):
@@ -90,12 +100,13 @@ class RegistroUsuarioAPI(APIView):
             print("❌ Error en el registro:", str(e))
             return Response({'error': str(e)}, status=500)
 
+@permission_classes([AllowAny])
 class EditarUsuarioAPI(APIView):
-    # permission_classes = [IsAuthenticated] # opcional: solo admin puede editar
-
     def patch(self, request, pk):
         try:
             user = User.objects.get(pk=pk)
+
+            # No forzamos nada, usamos los datos que vienen del request
             serializer = RegistroUsuarioSerializer(user, data=request.data, partial=True)
             if serializer.is_valid():
                 serializer.save()
@@ -105,7 +116,7 @@ class EditarUsuarioAPI(APIView):
             return Response({"error": "Usuario no encontrado"}, status=404)
         except Exception as e:
             return Response({'error': str(e)}, status=500)
-
+        
 class LogPagination(PageNumberPagination):
     page_size = 10
     page_size_query_param = 'page_size'

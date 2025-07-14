@@ -109,6 +109,19 @@ class EditarUsuarioAPI(APIView):
 class LogPagination(PageNumberPagination):
     page_size = 10
     page_size_query_param = 'page_size'
+    max_page_size = 50
+    allowed_page_sizes = [10, 25, 50]
+
+    def get_page_size(self, request):
+        try:
+            page_size = int(request.query_params.get(self.page_size_query_param, self.page_size))
+        except (TypeError, ValueError):
+            page_size = self.page_size
+
+        if page_size not in self.allowed_page_sizes:
+            raise NotFound(detail=f"page_size debe ser uno de {self.allowed_page_sizes}")
+
+        return page_size
 
 @permission_classes([AllowAny])
 class APILogList(ListAPIView):

@@ -186,6 +186,7 @@ def create_asignacion(request):
 
 #region RETRIEVE OR READ
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def getAllUniversidad(request):
   return getAllHandle(request, Universidad, UniversidadSerializer)
 
@@ -276,7 +277,6 @@ def get_Docente(request):
 def get_PeriodoAcademico(request):
     return getAll(request, PeriodoAcademico, PeriodoAcademicoSerializer)
 #endregion
-
 
 
 #region UPDATE

@@ -46,7 +46,7 @@ urlpatterns = [
     path('docentes', views.get_Docente),
 
     # URLS UPDATE
-    path('api/universidad/edit/<int:pk>/', views.update_universidad),
+    path('api/universidad/edit/<str:codigo>/', views.update_universidad),
     path('api/facultad/edit/<int:pk>/', views.update_facultad),
     path('api/campus/edit/<str:codigo>/', views.update_campus),
     path('api/escuela/edit/<int:pk>/', views.update_escuela),
@@ -67,14 +67,14 @@ urlpatterns = [
     path('api/asignacionDocente/delete/<int:pk>/', views.delete_asignacionDocente),
     path('api/asignacionDocente/delete', views.delete_asignacion_by_period),
     # DETAILS
-    path('api/universidad/<int:pk>/', views.details_universidad, name='detalle_universidad'),
+    path('api/universidad/<str:codigo>/', views.details_universidad, name='detalle_universidad'),
     path("api/campus/<str:codigo>/", views.details_campus),
-    path('api/facultad/<int:pk>/', views.details_facultad, name='detalle_facultad'),
-    path('api/escuela/<int:pk>/', views.details_escuela, name='detalle_escuela'),
-    path('api/tipodocente/<int:pk>/', views.details_tipoDocente, name='detalle_tipoDocente'),
-    path('api/categoriadocente/<int:pk>/', views.details_categoriaDocente, name='detalle_categoriaDocente'),
-    path('api/docente/<int:pk>/', views.details_docente, name='detalle_docente'),
-    path('api/periodoacademico/<int:pk>/', views.details_periodoAcademico, name='detalle_periodoAcademico'),
+    path('api/facultad/<str:codigo>/', views.details_facultad, name='detalle_facultad'),
+    path('api/escuela/<str:codigo>/', views.details_escuela, name='detalle_escuela'),
+    path('api/tipodocente/<str:codigo>/', views.details_tipoDocente, name='detalle_tipoDocente'),
+    path('api/categoriadocente/<str:codigo>/', views.details_categoriaDocente, name='detalle_categoriaDocente'),
+    path('api/docente/<str:codigo>/', views.details_docente, name='detalle_docente'),
+    path('api/periodoacademico/<str:codigo>/', views.details_periodoAcademico, name='detalle_periodoAcademico'),
     path('api/asignacion/<int:pk>/', views.details_Asignacion),
     # AUTH
     path('api/login', views.login_view),

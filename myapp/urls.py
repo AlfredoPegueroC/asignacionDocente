@@ -1,18 +1,22 @@
 
-from django.urls import path
+from django.urls import path, include
 from . import views
 from django.conf import settings
 from django.conf.urls.static import static
+from rest_framework.routers import DefaultRouter
 
+
+router = DefaultRouter()
+router.register(r'usuarios', views.UserViewSet, basename='usuarios')
+
+urlpatterns = router.urls
 
 urlpatterns = [
     #URLS CREATE
     path('', views.index, name='index'),
     path('api/protegida/', views.vista_protegida, name='vista_protegida'),
-    path('api/usuarios', views.UserListView.as_view(), name='user-list'),
-    path('api/registro', views.RegistroUsuarioAPI.as_view(), name='registro'),
+    path('api/', include(router.urls)),
     path('api/logs/', views.APILogList.as_view(), name='api-logs'),
-    path("api/usuarios/<int:pk>/", views.EditarUsuarioAPI.as_view()),
     path('api/asignacion/copiar', views.copiar_asignaciones),
     
     path('api/universidad/create', views.create_Universidad),

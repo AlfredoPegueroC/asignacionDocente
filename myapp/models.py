@@ -275,6 +275,7 @@ class PeriodoAcademico(models.Model):
             models.Index(fields=['PeriodoEstado'], name='idx_periodo_estado'),
             models.Index(fields=['PeriodoAnio'], name='idx_periodo_anio'),
         ]
+        
 class AsignacionDocente(models.Model):
     AsignacionID = models.AutoField(primary_key=True)
     nrc = models.CharField(max_length=10)

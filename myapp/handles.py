@@ -105,7 +105,10 @@ def getAll(request, modelData, serializer_class):
 
 def getAllHandle_asignacion(request, modelData, serializer_class):
     try:
-        queryset = modelData.objects.all()
+        # --- Optimización: evitar N+1 queries ---
+        queryset = modelData.objects.select_related(
+            'docenteFk', 'campusFk', 'universidadFk', 'facultadFk', 'escuelaFk', 'periodoFk'
+        ).all()
 
         # --- Búsqueda global incluyendo ForeignKey ---
         search_query = request.query_params.get('search', None)
@@ -137,7 +140,7 @@ def getAllHandle_asignacion(request, modelData, serializer_class):
             queryset = queryset.filter(**filters)
 
         # --- Ordenamiento dinámico ---
-        sort_by = request.query_params.get('sort_by', 'ADIDcodigo')
+        sort_by = request.query_params.get('sort_by', 'AsignacionID')
         if sort_by.lstrip('-') in [f.name for f in modelData._meta.fields]:
             queryset = queryset.order_by(sort_by)
 

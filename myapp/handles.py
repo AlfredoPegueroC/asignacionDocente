@@ -18,12 +18,12 @@ def createHandle(request, serializers):
 class CustomPagination(PageNumberPagination):
     page_size = 10  # Valor por defecto
     page_size_query_param = 'page_size'  # Permite que el cliente lo cambie
-    max_page_size = 50  # Valor máximo permitido
+    max_page_size = 100  # Valor máximo permitido
 
     def get_page_size(self, request):
         try:
             page_size = int(request.query_params.get(self.page_size_query_param, self.page_size))
-            if page_size in [10, 25, 50]:
+            if page_size in [10, 25, 50, 75, 100]:
                 return page_size
             return self.page_size  # Valor por defecto si no está en los permitidos
         except:

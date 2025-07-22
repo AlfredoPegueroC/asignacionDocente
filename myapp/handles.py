@@ -1,8 +1,7 @@
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
-from django.db.models import Q
-
+from django.db.models import Q, ForeignKey, OneToOneField, ManyToManyField
 def createHandle(request, serializers):
     serializer = serializers(data=request.data)
     if serializer.is_valid():
@@ -35,6 +34,22 @@ def getAllHandle(request, modelData, serializer_class):
     try:
         queryset = modelData.objects.all()
 
+        # Detectar relaciones y aplicar select_related/prefetch_related
+        select_related_fields = []
+        prefetch_related_fields = []
+
+        for field in modelData._meta.get_fields():
+            if isinstance(field, (ForeignKey, OneToOneField)):
+                select_related_fields.append(field.name)
+            elif isinstance(field, ManyToManyField) or field.auto_created:
+                prefetch_related_fields.append(field.name)
+
+        if select_related_fields:
+            queryset = queryset.select_related(*select_related_fields)
+        if prefetch_related_fields:
+            queryset = queryset.prefetch_related(*prefetch_related_fields)
+
+        # Filtro búsqueda general
         search_query = request.query_params.get('search', None)
         if search_query:
             query = Q()
@@ -43,6 +58,7 @@ def getAllHandle(request, modelData, serializer_class):
                     query |= Q(**{f"{field.name}__icontains": search_query})
             queryset = queryset.filter(query)
 
+        # Filtros dinámicos
         filters = {}
         for key, value in request.query_params.items():
             if hasattr(modelData, key):
@@ -50,13 +66,16 @@ def getAllHandle(request, modelData, serializer_class):
         if filters:
             queryset = queryset.filter(**filters)
 
+        # Orden
         sort_by = request.query_params.get('sort_by', 'id')
         if hasattr(modelData, sort_by.lstrip('-')):
             queryset = queryset.order_by(sort_by)
 
+        # Paginación
         paginator = CustomPagination()
         paginated_queryset = paginator.paginate_queryset(queryset, request)
 
+        # Serialización
         serializer = serializer_class(paginated_queryset, many=True)
         return paginator.get_paginated_response(serializer.data)
 

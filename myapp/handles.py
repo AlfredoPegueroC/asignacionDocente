@@ -85,23 +85,33 @@ def getAllHandle(request, modelData, serializer_class):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
         
+from django.db.models.fields.related import ForeignKey
+
 def getAll(request, modelData, serializer_class):
     try:
-        # Fetch all objects
-        queryset = modelData.objects.all()
+        # Obtener nombres de campos ForeignKey del modelo
+        foreign_keys = [
+            field.name
+            for field in modelData._meta.fields
+            if isinstance(field, ForeignKey)
+        ]
 
-        # Serialize data
+        # Usar select_related solo con claves foráneas válidas
+        queryset = modelData.objects.select_related(*foreign_keys).all()
+
+        # Serializar los datos
         serializer = serializer_class(queryset, many=True)
 
-        # Return response with serialized data
+        # Retornar la respuesta
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     except Exception as e:
-        # Handle exceptions (e.g., database errors)
+        # Manejo de errores
         return Response(
-            {"error": str(e)}, 
+            {"error": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
 
 def getAllHandle_asignacion(request, modelData, serializer_class):
     try:

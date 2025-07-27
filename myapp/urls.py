@@ -51,13 +51,13 @@ urlpatterns = [
 
     # URLS UPDATE
     path('api/universidad/edit/<str:codigo>/', views.update_universidad),
-    path('api/facultad/edit/<int:pk>/', views.update_facultad),
+    path('api/facultad/edit/<str:codigo>/', views.update_facultad),
     path('api/campus/edit/<str:codigo>/', views.update_campus),
-    path('api/escuela/edit/<int:pk>/', views.update_escuela),
-    path('api/tipodocente/edit/<int:pk>/', views.update_tipoDocente),
-    path('api/categoriadocente/edit/<int:pk>/', views.update_categoriaDocente),
-    path('api/docente/edit/<int:pk>/', views.update_docente),
-    path('api/periodoacademico/edit/<int:pk>/', views.update_periodoAcademico),
+    path('api/escuela/edit/<str:codigo>/', views.update_escuela),
+    path('api/tipodocente/edit/<str:codigo>/', views.update_tipoDocente),
+    path('api/categoriadocente/edit/<str:codigo>/', views.update_categoriaDocente),
+    path('api/docente/edit/<str:codigo>/', views.update_docente),
+    path('api/periodoacademico/edit/<str:codigo>/', views.update_periodoAcademico),
     path('api/asignacion/edit/<int:pk>/', views.update_asignacion),
     # URLS DELETE
     path('api/universidad/delete/<pk>/', views.delete_universidad),

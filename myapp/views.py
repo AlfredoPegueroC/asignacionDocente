@@ -246,10 +246,42 @@ def getAllAsignacion_frontend(request):
 
 
 
-@api_view(['GET'])
+# @api_view(['GET'])
+# @permission_classes([AllowAny])
+# def get_Universidad(request):
+#     return getAll(request, Universidad, UniversidadSerializer)
+
+@api_view(["GET"])
 @permission_classes([AllowAny])
 def get_Universidad(request):
-    return getAll(request, Universidad, UniversidadSerializer)
+    try:
+        search = request.GET.get("search", "").strip()
+        limit = int(request.GET.get("limit", 50))  # Límite configurable
+        offset = int(request.GET.get("offset", 0))  # Soporte para paginación
+
+        # Optimización con only
+        queryset = Universidad.objects.only("UniversidadID", "UniversidadNombre")
+
+        if search:
+            queryset = queryset.filter(
+                Q(UniversidadNombre__icontains=search)
+            )
+
+        total = queryset.count()  # Total antes de paginar
+        queryset = queryset[offset:offset + limit]
+
+        serializer = UniversidadSerializer(queryset, many=True)
+        return Response({
+            "results": serializer.data,
+            "total": total
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response(
+            {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -290,6 +322,7 @@ def get_PeriodoAcademico(request):
 
 #region UPDATE
 
+
 @api_view(['PUT', 'PATCH'])
 def update_universidad(request, codigo):
     try:
@@ -303,7 +336,8 @@ def update_universidad(request, codigo):
             ser.save()
             return JsonResponse(ser.data, status=status.HTTP_200_OK)
         return JsonResponse(ser.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+
+@permission_classes([AllowAny])
 @api_view(['PUT', 'PATCH'])
 def update_campus(request, codigo):
     try:
@@ -318,6 +352,7 @@ def update_campus(request, codigo):
             return JsonResponse(ser.data, status=status.HTTP_200_OK)
         return JsonResponse(ser.errors, status=status.HTTP_400_BAD_REQUEST)
 
+@permission_classes([AllowAny])
 @api_view(['PUT', 'PATCH'])
 def update_facultad(request, codigo):
   try:
@@ -1493,6 +1528,7 @@ class ImportUniversidad(APIView):
 
         try:
             df = pd.read_excel(excel_file)
+            df = df.dropna(how='all')  # <-- Se agrego esto
 
             required_columns = [
                 'Codigo', 'Nombre', 'Direccion', 'Telefono',
@@ -1506,9 +1542,11 @@ class ImportUniversidad(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
+            total_filas_excel = len(df)
             records_to_create = []
             failed_rows = []
             duplicados = 0
+            filas_incompletas = 0
 
             for index, row in df.iterrows():
                 try:
@@ -1521,6 +1559,7 @@ class ImportUniversidad(APIView):
                     rector = str(row.get('Rector', '')).strip()
 
                     if not all([codigo, nombre, direccion, telefono, email, sitio_web, rector]):
+                        filas_incompletas += 1
                         failed_rows.append(f"Datos incompletos en fila {index + 2}: {row.to_dict()}")
                         continue
 
@@ -1549,18 +1588,14 @@ class ImportUniversidad(APIView):
                 with transaction.atomic():
                     Universidad.objects.bulk_create(records_to_create)
 
-                return Response({
-                    "message": f"{len(records_to_create)} universidades importadas exitosamente.",
-                    "errores": failed_rows,
-                    "duplicados_omitidos": duplicados
-                }, status=status.HTTP_201_CREATED)
-
-            # No nuevos registros, pero no es un error
             return Response({
-                "message": "0 universidades importadas. Todos los registros ya existen o estaban incompletos.",
+                "message": f"{len(records_to_create)} universidades importadas exitosamente.",
+                "total_filas_excel": total_filas_excel,
+                "filas_importadas": len(records_to_create),
+                "filas_incompletas": filas_incompletas,
+                "duplicados_omitidos": duplicados,
                 "errores": failed_rows,
-                "duplicados_omitidos": duplicados
-            }, status=status.HTTP_200_OK)
+            }, status=status.HTTP_201_CREATED if records_to_create else status.HTTP_200_OK)
 
         except Exception as e:
             return Response(

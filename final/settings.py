@@ -77,6 +77,10 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
     "content-disposition",
 ]
 
+
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10 MB
+
 # 🌍 URLS & TEMPLATES
 ROOT_URLCONF = 'final.urls'
 

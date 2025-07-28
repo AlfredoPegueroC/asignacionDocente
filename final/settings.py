@@ -89,8 +89,12 @@ REST_FRAMEWORK = {
 
 
 ROOT_URLCONF = 'final.urls'
+
+CORS_ALLOW_ALL_ORIGINS = False
+
 CORS_ALLOWED_ORIGINS = [
     "https://asignaciondocente.vercel.app",
+    "http://localhost:3000"
 ]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = list(default_headers) + [

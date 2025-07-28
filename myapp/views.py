@@ -1604,6 +1604,14 @@ class ImportUniversidad(APIView):
             )
 
 
+from rest_framework.views import APIView
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.response import Response
+from rest_framework import status
+from django.db import transaction
+import pandas as pd
+from myapp.models import Campus, Universidad
+
 class ImportCampus(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
@@ -1631,6 +1639,10 @@ class ImportCampus(APIView):
                 u.UniversidadNombre.strip().lower(): u
                 for u in Universidad.objects.all()
             }
+
+            # Cargar códigos y nombres existentes para evitar consultas repetidas
+            existing_codes = set(Campus.objects.values_list('CampusCodigo', flat=True))
+            existing_names = set(name.lower() for name in Campus.objects.values_list('CampusNombre', flat=True))
 
             records_to_create = []
             failed_rows = []
@@ -1674,14 +1686,18 @@ class ImportCampus(APIView):
                         failed_rows.append(f"Fila {fila}: La universidad '{row.get('Universidad', '')}' no existe.")
                         continue
 
-                    # Validar duplicados
-                    if Campus.objects.filter(CampusCodigo=codigo).exists():
+                    # Validar duplicados usando sets para evitar consultas
+                    if codigo in existing_codes:
                         duplicated_rows.append(f"Fila {fila}: El código '{codigo}' ya existe.")
                         continue
-                    if Campus.objects.filter(CampusNombre__iexact=nombre).exists():
+                    if nombre.lower() in existing_names:
                         duplicated_rows.append(f"Fila {fila}: El nombre '{nombre}' ya existe.")
                         duplicated_names.append(nombre)
                         continue
+
+                    # Agregar código y nombre a sets para evitar duplicados dentro del batch actual
+                    existing_codes.add(codigo)
+                    existing_names.add(nombre.lower())
 
                     campus = Campus(
                         CampusCodigo=codigo,
@@ -1699,7 +1715,8 @@ class ImportCampus(APIView):
                     records_to_create.append(campus)
 
                 except ValueError:
-                    continue  # Ya se registró el error arriba
+                    # Ya registramos error arriba
+                    continue
                 except Exception as e:
                     failed_rows.append(f"Error inesperado en fila {fila}: {str(e)}")
 
@@ -1738,7 +1755,6 @@ class ImportCampus(APIView):
                 {"error": f"Error inesperado: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
 
 class ImportData(APIView):
     parser_classes = [MultiPartParser, FormParser]

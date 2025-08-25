@@ -2,6 +2,10 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Q, ForeignKey, OneToOneField, ManyToManyField
+from django.db.models.fields.related import ForeignKey
+
+
+
 def createHandle(request, serializers):
     serializer = serializers(data=request.data)
     if serializer.is_valid():
@@ -85,7 +89,6 @@ def getAllHandle(request, modelData, serializer_class):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
         
-from django.db.models.fields.related import ForeignKey
 
 def getAll(request, modelData, serializer_class):
     try:
@@ -112,7 +115,6 @@ def getAll(request, modelData, serializer_class):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
-
 def getAllHandle_asignacion(request, modelData, serializer_class):
     try:
         # --- Optimización: evitar N+1 queries ---
@@ -124,16 +126,24 @@ def getAllHandle_asignacion(request, modelData, serializer_class):
         search_query = request.query_params.get('search', None)
         if search_query:
             query = Q()
-            for field in modelData._meta.get_fields():
-                if hasattr(field, 'get_internal_type'):
-                    field_type = field.get_internal_type()
-                    if field_type in ['CharField', 'TextField']:
-                        query |= Q(**{f"{field.name}__icontains": search_query})
-                    elif field_type == 'ForeignKey':
-                        related_model = field.related_model
-                        for related_field in related_model._meta.get_fields():
-                            if hasattr(related_field, 'get_internal_type') and related_field.get_internal_type() in ['CharField', 'TextField']:
-                                query |= Q(**{f"{field.name}__{related_field.name}__icontains": search_query})
+            terms = search_query.split()
+
+            for term in terms:
+                term_query = Q()
+                for field in modelData._meta.get_fields():
+                    if hasattr(field, 'get_internal_type'):
+                        field_type = field.get_internal_type()
+                        if field_type in ['CharField', 'TextField']:
+                            term_query |= Q(**{f"{field.name}__icontains": term})
+                        elif field_type == 'ForeignKey':
+                            related_model = field.related_model
+                            for related_field in related_model._meta.get_fields():
+                                if hasattr(related_field, 'get_internal_type') and related_field.get_internal_type() in ['CharField', 'TextField']:
+                                    term_query |= Q(**{f"{field.name}__{related_field.name}__icontains": term})
+
+                # cada palabra debe aparecer en al menos un campo
+                query &= term_query
+
             queryset = queryset.filter(query)
 
         # --- Filtros dinámicos ---
@@ -166,7 +176,7 @@ def getAllHandle_asignacion(request, modelData, serializer_class):
             {"error": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-        
+
 def updateHandle(request, modelData, serializerClass, pk):
     try:
         instance = get_object_or_404(modelData, pk=pk)

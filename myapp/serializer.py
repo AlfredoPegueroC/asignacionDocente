@@ -352,8 +352,7 @@ class AsignacionDocenteSerializer(serializers.ModelSerializer):
             'modalidad', 'cupo', 'inscripto', 'horario', 'dias', 'aula',
             'creditos', 'tipo', 'accion', 'fecha_registro', 'usuario_registro',
             'docenteFk', 'campusFk', 'universidadFk', 'facultadFk', 'escuelaFk', 'periodoFk',
-            'docenteNombre', 'campusNombre', 'universidadNombre',
-            'facultadNombre', 'escuelaNombre', 'periodoNombre', 'universidadCodigo', 'campusCodigo', 'facultadCodigo', 'escuelaCodigo', 'periodoCodigo'
+            'docenteNombre', 'campusNombre', 'universidadNombre', 'comentario', 'facultadNombre', 'escuelaNombre', 'periodoNombre', 'universidadCodigo', 'campusCodigo', 'facultadCodigo', 'escuelaCodigo', 'periodoCodigo'
         ]
 
 class AsignacionDocenteSerializer_frontend(serializers.ModelSerializer):

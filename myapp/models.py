@@ -176,6 +176,42 @@ class CategoriaDocente(models.Model):
             models.Index(fields=['CategoriaEstado'], name='idx_categoria_estado'),
         ]
 
+class Asignatura(models.Model):
+    AsignaturaCodigo = models.CharField(max_length=25, primary_key=True)
+    AsignaturaNombre = models.CharField(max_length=100)
+    AsignaturaCreditos = models.IntegerField(default=0)
+    AsignaturaHorasTeoricas = models.IntegerField(default=0)
+    AsignaturaHorasPracticas = models.IntegerField(default=0)
+    AsignaturaEstado = models.CharField(max_length=15, choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')], default='Activo')
+    
+    AsignaturaFechaRegistro = models.DateTimeField(auto_now_add=True)
+    UsuarioRegistro = models.CharField(max_length=50, blank=True, null=True, default='admin')
+    
+    Asignatura_UniversidadFK = models.ForeignKey(
+        Universidad,
+        on_delete=models.CASCADE,
+        related_name="asignaturas"
+    )
+    Asignatura_FacultadFK = models.ForeignKey(
+        Facultad,
+        on_delete=models.CASCADE,
+        related_name="asignaturas"
+    )
+    Asignatura_EscuelaFK = models.ForeignKey(
+        Escuela,
+        on_delete=models.CASCADE,
+        related_name="asignaturas"
+    )
+
+    def __str__(self):
+        return self.AsignaturaNombre
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['AsignaturaNombre'], name='idx_asignatura_nombre'),
+            models.Index(fields=['AsignaturaEstado'], name='idx_asignatura_estado'),
+        ]
+
 
 class Docente(models.Model):
     DocenteID = models.AutoField(primary_key=True)

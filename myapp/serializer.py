@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Universidad,Campus, Facultad, Escuela, TipoDocente, CategoriaDocente, Docente, PeriodoAcademico, AsignacionDocente, APILog
+from .models import Universidad,Campus, Facultad, Escuela, TipoDocente, CategoriaDocente, Docente, PeriodoAcademico, AsignacionDocente, APILog, Asignatura
 from django.contrib.auth.models import Group 
 
 from django.contrib.auth.models import User, Group
@@ -217,6 +217,38 @@ class EscuelaSerializer(serializers.ModelSerializer):
             'facultadNombre',
             'universidadCodigo',
             'facultadCodigo',
+        ]
+
+class AsignaturaSerializer(serializers.ModelSerializer):
+    Asignatura_UniversidadFK = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
+    Asignatura_FacultadFK = serializers.PrimaryKeyRelatedField(queryset=Facultad.objects.all())
+    Asignatura_EscuelaFK = serializers.PrimaryKeyRelatedField(queryset=Escuela.objects.all())
+
+    universidadNombre = serializers.CharField(source='Asignatura_UniversidadFK.UniversidadNombre', read_only=True)
+    universidadCodigo = serializers.CharField(source='Asignatura_UniversidadFK.UniversidadCodigo', read_only=True)
+    facultadNombre = serializers.CharField(source='Asignatura_FacultadFK.FacultadNombre', read_only=True)
+    facultadCodigo = serializers.CharField(source='Asignatura_FacultadFK.FacultadCodigo', read_only=True)
+    escuelaNombre = serializers.CharField(source='Asignatura_EscuelaFK.EscuelaNombre', read_only=True)
+    escuelaCodigo = serializers.CharField(source='Asignatura_EscuelaFK.EscuelaCodigo', read_only=True)
+
+    class Meta:
+        model = Asignatura
+        fields = [
+            'AsignaturaCodigo',
+            'AsignaturaNombre',
+            'AsignaturaHorasTeoricas',
+            'AsignaturaHorasPracticas',
+            'AsignaturaFechaRegistro',
+            'UsuarioRegistro',
+            'Asignatura_UniversidadFK',
+            'Asignatura_FacultadFK',
+            'Asignatura_EscuelaFK',
+            'universidadNombre',
+            'facultadNombre',
+            'escuelaNombre',
+            'universidadCodigo',
+            'facultadCodigo',
+            'escuelaCodigo',
         ]
 
 class TipoDocenteSerializer(serializers.ModelSerializer):

@@ -14,7 +14,8 @@ from .serializer import (
   AsignacionDocenteSerializer_frontend,
   UserSerializer,
   RegistroUsuarioSerializer,
-  APILogSerializer
+  APILogSerializer,
+  AsignaturaSerializer
 )
 from .models import (
     Universidad, 
@@ -26,7 +27,8 @@ from .models import (
     Docente, 
     PeriodoAcademico,
     AsignacionDocente,
-    APILog
+    APILog,
+    Asignatura
     )
 from .handles import createHandle, getAllHandle, deleteHandler,getAllHandle_asignacion, getAll, updateHandle
 from django.views.decorators.csrf import csrf_exempt
@@ -172,6 +174,10 @@ def create_Escuela(request):
   return createHandle(request ,EscuelaSerializer)
 
 @api_view(['POST'])
+def create_Asignatura(request):
+  return createHandle(request, AsignaturaSerializer)
+
+@api_view(['POST'])
 def create_TipoDocente(request):
   return createHandle(request, TipoDocenteSerializer)
 
@@ -213,6 +219,12 @@ def getAllFacultad(request):
 @permission_classes([AllowAny])
 def getAllEscuela(request):
   return getAllHandle(request, Escuela, EscuelaSerializer)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def getAllAsignatura(request):
+    return getAllHandle(request, Asignatura, AsignaturaSerializer)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -378,6 +390,19 @@ def update_escuela(request, codigo):
           ser.save()
           return JsonResponse(ser.data, status=status.HTTP_200_OK)
       return JsonResponse(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['PUT', 'PATCH'])
+def update_asignatura(request, codigo):
+    try:
+        asignatura = Asignatura.objects.get(AsignaturaCodigo=codigo)
+    except Asignatura.DoesNotExist:
+        return JsonResponse({'error': 'Asignatura not found'}, status=status.HTTP_404_NOT_FOUND)
+    if request.method in ['PUT', 'PATCH']:
+        ser = AsignaturaSerializer(asignatura, data=request.data, partial=(request.method == 'PATCH'))
+        if ser.is_valid():
+            ser.save()
+            return JsonResponse(ser.data, status=status.HTTP_200_OK)
+        return JsonResponse(ser.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['PUT', 'PATCH'])
 def update_tipoDocente(request, codigo):

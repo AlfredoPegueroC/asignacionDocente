@@ -239,6 +239,8 @@ class AsignaturaSerializer(serializers.ModelSerializer):
             'AsignaturaHorasTeoricas',
             'AsignaturaHorasPracticas',
             'AsignaturaFechaRegistro',
+            'AsignaturaEstado',
+            'AsignaturaCreditos',
             'UsuarioRegistro',
             'Asignatura_UniversidadFK',
             'Asignatura_FacultadFK',

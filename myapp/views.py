@@ -174,6 +174,7 @@ def create_Escuela(request):
   return createHandle(request ,EscuelaSerializer)
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def create_Asignatura(request):
   return createHandle(request, AsignaturaSerializer)
 
@@ -455,6 +456,7 @@ def update_periodoAcademico(request, codigo):
           ser.save()
           return JsonResponse(ser.data, status=status.HTTP_200_OK)
       return JsonResponse(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+  
 
 @api_view(['PUT', 'PATCH'])
 def update_asignacion(request, pk):
@@ -513,6 +515,15 @@ def delete_tipoDocente(request, pk):
         tipoDocente.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     except TipoDocente.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['DELETE'])
+def delete_asignatura(request, codigo):
+    try:
+        asignatura = Asignatura.objects.get(AsignaturaCodigo=codigo)
+        asignatura.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except Asignatura.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
 
 @api_view(['DELETE'])

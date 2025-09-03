@@ -84,6 +84,7 @@ urlpatterns = [
     path('api/docente/<str:codigo>/', views.details_docente, name='detalle_docente'),
     path('api/periodoacademico/<str:codigo>/', views.details_periodoAcademico, name='detalle_periodoAcademico'),
     path('api/asignacion/<int:pk>/', views.details_Asignacion),
+    path('api/asignatura/<str:codigo>/', views.details_asignatura, name='detalle_asignatura'),
     # AUTH
     path('api/login', views.login_view),
     path('api/logout', views.logout_view),

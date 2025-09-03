@@ -662,6 +662,15 @@ def details_periodoAcademico(request, codigo):
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
+def details_asignatura(request, codigo):
+    asignatura = Asignatura.objects.filter(AsignaturaCodigo=codigo).first()
+    if asignatura is None:
+        return Response({'error': 'Asignatura not found'}, status=status.HTTP_404_NOT_FOUND)
+    serializer = AsignaturaSerializer(asignatura)
+
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
 def details_Asignacion(request, pk):
     asignacion = AsignacionDocente.objects.filter(pk=pk).first()
     if asignacion is None:

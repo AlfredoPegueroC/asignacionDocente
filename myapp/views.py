@@ -1260,69 +1260,69 @@ class ImportEscuela(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-class ImportAsignatura(APIView):
-    parser_classes = [MultiPartParser, FormParser]
+# class ImportAsignatura(APIView):
+#     parser_classes = [MultiPartParser, FormParser]
 
-    def post(self, request, *args, **kwargs):
-        excel_file = request.FILES.get('excel_file')
-        if not excel_file:
-            return Response({"error": "No se envió ningún archivo Excel"}, status=status.HTTP_400_BAD_REQUEST)
+#     def post(self, request, *args, **kwargs):
+#         excel_file = request.FILES.get('excel_file')
+#         if not excel_file:
+#             return Response({"error": "No se envió ningún archivo Excel"}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            df = pd.read_excel(excel_file)
-            df = df.dropna(how='all')  # Ignorar filas totalmente vacías
+#         try:
+#             df = pd.read_excel(excel_file)
+#             df = df.dropna(how='all')  # Ignorar filas totalmente vacías
 
-            required_columns = ['Codigo', 'Nombre', 'Creditos', 'Universidad']
+#             required_columns = ['Codigo', 'Nombre', 'Creditos', 'Universidad']
 
-            missing_columns = [col for col in required_columns if col not in df.columns]
-            if missing_columns:
-                return Response(
-                    {"error": f"Faltan columnas requeridas: {', '.join(missing_columns)}"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+#             missing_columns = [col for col in required_columns if col not in df.columns]
+#             if missing_columns:
+#                 return Response(
+#                     {"error": f"Faltan columnas requeridas: {', '.join(missing_columns)}"},
+#                     status=status.HTTP_400_BAD_REQUEST
+#                 )
 
-            universidades = {u.UniversidadNombre.strip().lower(): u for u in Universidad.objects.all()}
+#             universidades = {u.UniversidadNombre.strip().lower(): u for u in Universidad.objects.all()}
 
-            records_to_create = []
-            failed_rows = []
-            duplicated_rows = []
+#             records_to_create = []
+#             failed_rows = []
+#             duplicated_rows = []
 
-            # Precargar códigos existentes para evitar repetidos
-            existing_codigos = set(Asignatura.objects.values_list('AsignaturaCodigo', flat=True))
+#             # Precargar códigos existentes para evitar repetidos
+#             existing_codigos = set(Asignatura.objects.values_list('AsignaturaCodigo', flat=True))
 
-            for index, row in df.iterrows():
-                fila = index + 2
-                try:
-                    codigo = str(row.get('Codigo', '')).strip()
-                    nombre = str(row.get('Nombre', '')).strip()
-                    creditos = row.get('Creditos')
-                    universidad_nombre = str(row.get('Universidad', '')).strip().lower()
+#             for index, row in df.iterrows():
+#                 fila = index + 2
+#                 try:
+#                     codigo = str(row.get('Codigo', '')).strip()
+#                     nombre = str(row.get('Nombre', '')).strip()
+#                     creditos = row.get('Creditos')
+#                     universidad_nombre = str(row.get('Universidad', '')).strip().lower()
 
-                    # Validar campos vacíos
-                    required_fields = {
-                        "Codigo": codigo,
-                        "Nombre": nombre,
-                        "Creditos": creditos,
-                        "Universidad": universidad_nombre,
-                    }
+#                     # Validar campos vacíos
+#                     required_fields = {
+#                         "Codigo": codigo,
+#                         "Nombre": nombre,
+#                         "Creditos": creditos,
+#                         "Universidad": universidad_nombre,
+#                     }
 
-                    for field, value in required_fields.items():
-                        if not value or (isinstance(value, float) and pd.isna(value)):
-                            failed_rows.append(f"Fila {fila}: El campo '{field}' está vacío.")
-                            raise ValueError("Campo vacío")
+#                     for field, value in required_fields.items():
+#                         if not value or (isinstance(value, float) and pd.isna(value)):
+#                             failed_rows.append(f"Fila {fila}: El campo '{field}' está vacío.")
+#                             raise ValueError("Campo vacío")
 
-                    universidad = universidades.get(universidad_nombre)
+#                     universidad = universidades.get(universidad_nombre)
 
-                    if not universidad:
-                        failed_rows.append(f"Fila {fila}: Universidad '{row.get('Universidad')}' no encontrada.")
-                        continue
+#                     if not universidad:
+#                         failed_rows.append(f"Fila {fila}: Universidad '{row.get('Universidad')}' no encontrada.")
+#                         continue
 
-                    if codigo in existing_codigos:
-                        duplicated_rows.append(f"Fila {fila}: El código '{codigo}' ya existe.")
-                        continue
-                    existing_codigos.add(codigo)
+#                     if codigo in existing_codigos:
+#                         duplicated_rows.append(f"Fila {fila}: El código '{codigo}' ya existe.")
+#                         continue
+#                     existing_codigos.add(codigo)
 
-                    asignatura = Asign
+#                     asignatura = Asign
             
 class ImportDocente(APIView):
     parser_classes = [MultiPartParser, FormParser]

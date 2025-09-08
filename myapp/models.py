@@ -391,3 +391,32 @@ class APILog(models.Model):
 
     def __str__(self):
         return f"{self.user} {self.method} {self.path} [{self.status_code}]"
+    
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    universidad = models.ForeignKey(
+        Universidad, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='profiles_universidad'
+    )
+    
+    facultad = models.ForeignKey(
+        Facultad, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='profiles_facultad' 
+    )
+    
+    escuela = models.ForeignKey(
+        Escuela, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='profiles_escuela' 
+    )
+
+    def __str__(self):
+        return self.user.username

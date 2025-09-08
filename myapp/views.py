@@ -68,12 +68,12 @@ class CustomUserPagination(PageNumberPagination):
     max_page_size = 100
     allowed_page_sizes = [10, 25, 50, 100]  # Tamaños de página permitidos
 
-
+@permission_classes([AllowAny])
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().order_by('id')
     serializer_class = UserSerializer
     pagination_class = CustomUserPagination
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
 
 
@@ -90,44 +90,7 @@ class UserViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-# class RegistroUsuarioAPI(APIView):
-#     def post(self, request):
-#         try:
-#             serializer = RegistroUsuarioSerializer(data=request.data)
-#             if serializer.is_valid():
-#                 user = serializer.save()
-#                 return Response({
-#                     "id": user.id,
-#                     "username": user.username,
-#                     "email": user.email,
-#                     "first_name": user.first_name,
-#                     "last_name": user.last_name,
-#                     "is_staff": user.is_staff,
-#                     "is_active": user.is_active,
-#                     "groups": [group.name for group in user.groups.all()]
-#                 }, status=201)
-#             return Response(serializer.errors, status=400)
-#         except Exception as e:
-#             print("❌ Error en el registro:", str(e))
-#             return Response({'error': str(e)}, status=500)
 
-# @permission_classes([AllowAny])
-# class EditarUsuarioAPI(APIView):
-#     def patch(self, request, pk):
-#         try:
-#             user = User.objects.get(pk=pk)
-
-#             # No forzamos nada, usamos los datos que vienen del request
-#             serializer = RegistroUsuarioSerializer(user, data=request.data, partial=True)
-#             if serializer.is_valid():
-#                 serializer.save()
-#                 return Response(serializer.data, status=200)
-#             return Response(serializer.errors, status=400)
-#         except User.DoesNotExist:
-#             return Response({"error": "Usuario no encontrado"}, status=404)
-#         except Exception as e:
-#             return Response({'error': str(e)}, status=500)
-        
 class LogPagination(PageNumberPagination):
     page_size = 10
     page_size_query_param = 'page_size'

@@ -1,10 +1,19 @@
 from rest_framework import serializers
-from django.contrib.auth.models import User
-from .models import Universidad,Campus, Facultad, Escuela, TipoDocente, CategoriaDocente, Docente, PeriodoAcademico, AsignacionDocente, APILog, Asignatura
-from django.contrib.auth.models import Group 
-
+from .models import Universidad,Campus, Facultad, Escuela, TipoDocente, CategoriaDocente, Docente, PeriodoAcademico, AsignacionDocente, APILog, Asignatura, Profile
 from django.contrib.auth.models import User, Group
 from rest_framework import serializers
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+    universidad = serializers.StringRelatedField()
+    facultad = serializers.StringRelatedField()
+    escuela = serializers.StringRelatedField()
+
+    class Meta:
+        model = Profile
+        fields = ['universidad', 'facultad', 'escuela']
+
+
 
 class UserSerializer(serializers.ModelSerializer):
     groups = serializers.SlugRelatedField(
@@ -13,12 +22,12 @@ class UserSerializer(serializers.ModelSerializer):
         queryset=Group.objects.all()
     )
     password = serializers.CharField(write_only=True, required=False)
-
+    profile = ProfileSerializer(read_only=True)
     class Meta:
         model = User
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name',
-            'is_staff', 'is_active', 'groups', 'password'
+            'is_staff', 'is_active', 'groups', 'password', 'profile'
         ]
 
     def create(self, validated_data):
@@ -113,6 +122,8 @@ class APILogSerializer(serializers.ModelSerializer):
 
     def get_user(self, obj):
         return obj.user.username if obj.user else "Anónimo"
+
+
 # Universidad Serializer
 class CampusSerializer(serializers.ModelSerializer):
     Campus_UniversidadFK = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())

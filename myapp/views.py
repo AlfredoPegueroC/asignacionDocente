@@ -546,6 +546,8 @@ def delete_campus(request, pk):
     except Campus.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
 
+
+
 #endregion
 
 #region DETAILTS
@@ -731,6 +733,8 @@ def UniversidadExport(request):
         df.to_excel(writer, sheet_name='Universidades', index=False)
 
     return response
+
+
 
 
 @api_view(["GET"])
@@ -1033,6 +1037,49 @@ def PeriodoAcademicoExport(request):
 
     with pd.ExcelWriter(response, engine='openpyxl') as writer:
         df.to_excel(writer, sheet_name='Periodos', index=False)
+
+    return response
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def AsignaturaExport(request):
+    queryset = Asignatura.objects.select_related("Asignatura_UniversidadFK").all()
+    data = []
+
+    for asignatura in queryset:
+        data.append({
+            'Código': asignatura.AsignaturaCodigo,
+            'Nombre': asignatura.AsignaturaNombre,
+            'Créditos': asignatura.AsignaturaCreditos,
+            'Horas Teóricas': asignatura.AsignaturaHorasTeoricas,
+            'Horas Prácticas': asignatura.AsignaturaHorasPracticas,
+            'Estado': asignatura.AsignaturaEstado,
+            'Universidad': asignatura.Asignatura_UniversidadFK.UniversidadNombre if asignatura.Asignatura_UniversidadFK else '',
+            'Facultad': asignatura.Asignatura_FacultadFK.FacultadNombre if asignatura.Asignatura_FacultadFK else '',
+            'Escuela': asignatura.Asignatura_EscuelaFK.EscuelaNombre if asignatura.Asignatura_EscuelaFK else ''
+        })
+
+    columns = [
+        'Código',
+        'Nombre',
+        'Créditos',
+        'Horas Teóricas',
+        'Horas Prácticas',
+        'Estado',
+        'Universidad',
+        'Facultad',
+        'Escuela'
+    ]
+
+    df = pd.DataFrame(data, columns=columns)
+
+    response = HttpResponse(content_type='application/vnd.ms-excel')
+    fecha_actual = datetime.now().strftime("%Y-%m-%d")  # ejemplo: 2025-09-25
+    filename = f"asignaturas_{fecha_actual}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+    with pd.ExcelWriter(response, engine='openpyxl') as writer:
+        df.to_excel(writer, sheet_name='Asignaturas', index=False)
 
     return response
 

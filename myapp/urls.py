@@ -99,6 +99,7 @@ urlpatterns = [
     path('export/categoriaDocente', views.CategoriaDocenteExport),
     path('export/tipoDocente', views.TipoDocenteExport),
     path('export/periodoAcademico', views.PeriodoAcademicoExport),
+    path('export/asignatura', views.AsignaturaExport),
     # import
     path('import/asignacion', views.ImportAsignacion.as_view()),
     path('import/campus', views.ImportCampus.as_view()),

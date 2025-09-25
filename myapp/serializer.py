@@ -5,16 +5,25 @@ from rest_framework import serializers
 
 
 class ProfileSerializer(serializers.ModelSerializer):
-    universidad = serializers.StringRelatedField()
-    facultad = serializers.StringRelatedField()
-    escuela = serializers.StringRelatedField()
+    # Lectura: nombres
+    universidad_name = serializers.StringRelatedField(source="universidad", read_only=True)
+    facultad_name = serializers.StringRelatedField(source="facultad", read_only=True)
+    escuela_name = serializers.StringRelatedField(source="escuela", read_only=True)
+
+    # Escritura: IDs
+    universidad = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all(), write_only=True)
+    facultad = serializers.PrimaryKeyRelatedField(queryset=Facultad.objects.all(), write_only=True)
+    escuela = serializers.PrimaryKeyRelatedField(queryset=Escuela.objects.all(), write_only=True)
 
     class Meta:
         model = Profile
-        fields = ['universidad', 'facultad', 'escuela']
+        fields = [
+            'universidad', 'facultad', 'escuela',
+            'universidad_name', 'facultad_name', 'escuela_name'
+        ]
 
 
-
+# --- UserSerializer ---
 class UserSerializer(serializers.ModelSerializer):
     groups = serializers.SlugRelatedField(
         many=True,
@@ -22,7 +31,8 @@ class UserSerializer(serializers.ModelSerializer):
         queryset=Group.objects.all()
     )
     password = serializers.CharField(write_only=True, required=False)
-    profile = ProfileSerializer(read_only=True)
+    profile = ProfileSerializer()  # permite lectura y escritura
+
     class Meta:
         model = User
         fields = [
@@ -31,8 +41,10 @@ class UserSerializer(serializers.ModelSerializer):
         ]
 
     def create(self, validated_data):
+        profile_data = validated_data.pop('profile', {})
         groups_data = validated_data.pop('groups', [])
         password = validated_data.pop('password', None)
+
         user = User(**validated_data)
         if password:
             user.set_password(password)
@@ -40,11 +52,18 @@ class UserSerializer(serializers.ModelSerializer):
             user.set_password(User.objects.make_random_password())
         user.save()
 
+        # asignar grupos
         groups = Group.objects.filter(name__in=groups_data)
         user.groups.set(groups)
+
+        # crear profile
+        if profile_data:
+            Profile.objects.create(user=user, **profile_data)
+
         return user
 
     def update(self, instance, validated_data):
+        profile_data = validated_data.pop('profile', None)
         groups_data = validated_data.pop('groups', None)
         password = validated_data.pop('password', None)
 
@@ -56,9 +75,17 @@ class UserSerializer(serializers.ModelSerializer):
 
         instance.save()
 
+        # actualizar grupos
         if groups_data is not None:
             groups = Group.objects.filter(name__in=groups_data)
             instance.groups.set(groups)
+
+        # actualizar o crear profile
+        if profile_data:
+            Profile.objects.update_or_create(
+                user=instance,
+                defaults=profile_data
+            )
 
         return instance
 

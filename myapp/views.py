@@ -80,15 +80,15 @@ class UserViewSet(viewsets.ModelViewSet):
 # @permission_classes([AllowAny])
 # class UserListView(APIView):
     
-    def get(self, request):
-        try:
-            users = User.objects.all()
-            paginator = CustomUserPagination()
-            paginated_users = paginator.paginate_queryset(users, request)
-            serializer = UserSerializer(paginated_users, many=True)
-            return paginator.get_paginated_response(serializer.data)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+#     def get(self, request):
+#         try:
+#             users = User.objects.all()
+#             paginator = CustomUserPagination()
+#             paginated_users = paginator.paginate_queryset(users, request)
+#             serializer = UserSerializer(paginated_users, many=True)
+#             return paginator.get_paginated_response(serializer.data)
+#         except Exception as e:
+#             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class LogPagination(PageNumberPagination):

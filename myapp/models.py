@@ -51,7 +51,7 @@ class Campus(models.Model):
     Campus_UniversidadFK = models.ForeignKey(
         Universidad,
         on_delete=models.CASCADE,
-        related_name="campus_list"  # Clave para acceder desde Universidad
+        related_name="campus_list" 
     )
 
     def __str__(self):
@@ -79,12 +79,12 @@ class Facultad(models.Model):
     Facultad_UniversidadFK = models.ForeignKey(
         Universidad,
         on_delete=models.CASCADE,
-        related_name="facultades"  # Para acceder desde Universidad
+        related_name="facultades" 
     )
     Facultad_CampusFK = models.ForeignKey(
         Campus,
         on_delete=models.CASCADE,
-        related_name="facultades"  # Para acceder desde Campus
+        related_name="facultades"  
     )
 
     def __str__(self):

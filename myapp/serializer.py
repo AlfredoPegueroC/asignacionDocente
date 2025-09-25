@@ -192,10 +192,10 @@ class FacultadSerializer(serializers.ModelSerializer):
             'FacultadFechaRegistro',
             'UsuarioRegistro',
             'FacultadEstado',
+            'universidadNombre', 
+            'campusNombre',
             'Facultad_UniversidadFK',
             'Facultad_CampusFK',
-            'universidadNombre',  
-            'campusNombre',
             'universidadCodigo',
             'campusCodigo',
         ]

@@ -38,10 +38,9 @@ def getAllHandle(request, modelData, serializer_class):
     try:
         queryset = modelData.objects.all()
 
-        # Detectar relaciones y aplicar select_related/prefetch_related
+        # Detectar relaciones para optimizar la consulta
         select_related_fields = []
         prefetch_related_fields = []
-
         for field in modelData._meta.get_fields():
             if isinstance(field, (ForeignKey, OneToOneField)):
                 select_related_fields.append(field.name)
@@ -57,12 +56,19 @@ def getAllHandle(request, modelData, serializer_class):
         search_query = request.query_params.get('search', None)
         if search_query:
             query = Q()
+            # Campos directos
             for field in modelData._meta.get_fields():
                 if hasattr(field, 'get_internal_type') and field.get_internal_type() in ['CharField', 'TextField']:
                     query |= Q(**{f"{field.name}__icontains": search_query})
+                # Campos de relaciones FK/OneToOne
+                elif isinstance(field, (ForeignKey, OneToOneField)):
+                    related_model = field.related_model
+                    for rel_field in related_model._meta.get_fields():
+                        if hasattr(rel_field, 'get_internal_type') and rel_field.get_internal_type() in ['CharField', 'TextField']:
+                            query |= Q(**{f"{field.name}__{rel_field.name}__icontains": search_query})
             queryset = queryset.filter(query)
 
-        # Filtros dinámicos
+        # Filtros dinámicos simples
         filters = {}
         for key, value in request.query_params.items():
             if hasattr(modelData, key):

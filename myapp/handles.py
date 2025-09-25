@@ -105,17 +105,20 @@ def getAll(request, modelData, serializer_class):
             if isinstance(field, ForeignKey)
         ]
 
-        # Usar select_related solo con claves foráneas válidas
+        # Queryset base con select_related
         queryset = modelData.objects.select_related(*foreign_keys).all()
+
+        # Aplicar filtros dinámicos: cualquier query param que coincida con un campo
+        for param, value in request.GET.items():
+            # Solo filtra si el modelo tiene ese campo (case-insensitive)
+            if param in [f.name for f in modelData._meta.fields]:
+                queryset = queryset.filter(**{param: value})
 
         # Serializar los datos
         serializer = serializer_class(queryset, many=True)
-
-        # Retornar la respuesta
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     except Exception as e:
-        # Manejo de errores
         return Response(
             {"error": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR

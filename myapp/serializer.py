@@ -422,7 +422,7 @@ class AsignacionDocenteSerializer(serializers.ModelSerializer):
         fields = [
             'AsignacionID', 'nrc', 'clave', 'nombre', 'codigo', 'seccion',
             'modalidad', 'cupo', 'inscripto', 'horario', 'dias', 'aula',
-            'creditos', 'tipo', 'accion', 'fecha_registro', 'usuario_registro',
+            'creditos', 'tipo', 'accion', 'modificacion','fecha_registro', 'usuario_registro',
             'docenteFk', 'campusFk', 'universidadFk', 'facultadFk', 'escuelaFk', 'periodoFk',
             'docenteNombre', 'campusNombre', 'universidadNombre', 'comentario', 'facultadNombre', 'escuelaNombre', 'periodoNombre', 'universidadCodigo', 'campusCodigo', 'facultadCodigo', 'escuelaCodigo', 'periodoCodigo'
         ]

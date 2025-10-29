@@ -274,7 +274,7 @@ class Docente(models.Model):
         return f"{self.DocenteNombre} {self.DocenteApellido}"
 
     class Meta:
-        unique_together = ('DocenteNumeroIdentificacion', 'Docente_UniversidadFK')
+        # unique_together = ('DocenteNumeroIdentificacion', 'Docente_UniversidadFK')
         indexes = [
             models.Index(fields=['DocenteCodigo']),
             models.Index(fields=['Docente_UniversidadFK']),

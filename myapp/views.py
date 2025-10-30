@@ -1,4 +1,4 @@
-
+import unicodedata
 from django.shortcuts import render, HttpResponse
 from django.http import JsonResponse
 from .serializer import (
@@ -1589,6 +1589,56 @@ class ImportDocente(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
             
+
+
+# --- Funciones auxiliares ---
+
+def strip_accents(s: str) -> str:
+    if s is None:
+        return ""
+    s = str(s)
+    nfkd = unicodedata.normalize("NFKD", s)
+    return "".join(c for c in nfkd if not unicodedata.combining(c))
+
+def norm(s: str) -> str:
+    return strip_accents(str(s)).strip().lower()
+
+def s(v) -> str:
+    """Convierte cualquier valor a string seguro ('' si es NaN/None)."""
+    return "" if pd.isna(v) or v is None else str(v)
+
+# --- Mapeo de encabezados normalizados ---
+HEADER_MAP = {
+    "nrc": "NRC",
+    "clave": "Clave",
+    "asignatura": "Asignatura",
+    "codigo": "Codigo",
+    "profesor": "Profesor",
+    "docente": "Profesor",
+    "maestro": "Profesor",
+    "seccion": "Seccion",
+    "modalidad": "Modalidad",
+    "campus": "Campus",
+    "facultad": "Facultad",
+    "escuela": "Escuela",
+    "tipo": "Tipo",
+    "cupo": "Cupo",
+    "inscripto": "Inscripto",
+    "inscrito": "Inscripto",
+    "inscritos": "Inscripto",
+    "horario": "Horario",
+    "dias": "Dias",
+    "aula": "Aula",
+    "creditos": "Creditos",
+    "materia": "Asignatura",
+}
+
+REQUIRED_CANONICAL = [
+    "NRC", "Clave", "Asignatura", "Codigo", "Profesor", "Seccion", "Modalidad",
+    "Campus", "Facultad", "Escuela", "Tipo", "Cupo", "Inscripto", "Horario",
+    "Dias", "Aula", "Creditos"
+]
+
 class ImportAsignacion(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
@@ -1602,30 +1652,35 @@ class ImportAsignacion(APIView):
             return Response({"error": "No se envió ningún archivo Excel."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            df = pd.read_excel(excel_file)
-            df = df.dropna(how='all')  # Eliminar filas totalmente vacías
+            df = pd.read_excel(excel_file, dtype=object)
+            df = df.dropna(how="all")
 
-            required_columns = [
-                "NRC", "Clave", "Asignatura", "Codigo", "Profesor", "Seccion", "Modalidad",
-                "Campus", "Facultad", "Escuela", "Tipo", "Cupo", "Inscripto", "Horario", "Dias",
-                "Aula", "Creditos"
-            ]
+            # --- Normalizar encabezados ---
+            rename_map = {}
+            for col in df.columns:
+                key = norm(col)
+                canon = HEADER_MAP.get(key)
+                if canon:
+                    rename_map[col] = canon
+            df = df.rename(columns=rename_map)
 
-            missing_columns = [col for col in required_columns if col not in df.columns]
-            if missing_columns:
+            # --- Validar columnas requeridas ---
+            missing = [c for c in REQUIRED_CANONICAL if c not in df.columns]
+            if missing:
                 return Response(
-                    {"error": f"Faltan columnas requeridas: {', '.join(missing_columns)}"},
+                    {"error": f"Faltan columnas requeridas: {', '.join(missing)}"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # Precargar datos para evitar consultas en el loop
-            facultades = {f.FacultadNombre.strip().lower(): f for f in Facultad.objects.all()}
-            escuelas = {e.EscuelaNombre.strip().lower(): e for e in Escuela.objects.all()}
+            # --- Precargar datos ---
+            facultades = {norm(f.FacultadNombre): f for f in Facultad.objects.all()}
+            escuelas = {norm(e.EscuelaNombre): e for e in Escuela.objects.all()}
+            campus_map = {norm(c.CampusNombre): c for c in Campus.objects.all()}
             docentes = {
-                f"{d.DocenteNombre.strip()} {d.DocenteApellido.strip()}".lower(): d
+                norm(f"{d.DocenteNombre} {d.DocenteApellido}"): d
                 for d in Docente.objects.all()
             }
-            campus_list = {c.CampusNombre.strip().lower(): c for c in Campus.objects.all()}
+
             universidad = Universidad.objects.first()
             periodo = PeriodoAcademico.objects.filter(pk=period).first()
             if not periodo:
@@ -1635,30 +1690,40 @@ class ImportAsignacion(APIView):
             failed_rows = []
             duplicates = []
 
-            # Precargar NRC existentes para evitar duplicados en batch
             existing_nrcs = set(
-                AsignacionDocente.objects.filter(periodoFk=periodo).values_list('nrc', flat=True)
+                AsignacionDocente.objects.filter(periodoFk=periodo).values_list("nrc", flat=True)
             )
 
+            def to_int_safe(v, field_name):
+                sv = s(v).strip()
+                if sv == "":
+                    raise ValueError(f"{field_name} vacío")
+                if sv.endswith(".0"):
+                    sv = sv[:-2]
+                return int(float(sv))
+
+            # --- Iterar filas ---
             for index, row in df.iterrows():
-                fila = index + 2  # Número real de fila Excel
-
+                fila = index + 2
                 try:
-                    facultad = facultades.get(str(row["Facultad"]).strip().lower())
-                    escuela = escuelas.get(str(row["Escuela"]).strip().lower())
-                    campus = campus_list.get(str(row["Campus"]).strip().lower())
+                    facultad = facultades.get(norm(s(row["Facultad"])))
+                    escuela = escuelas.get(norm(s(row["Escuela"])))
+                    campus = campus_map.get(norm(s(row["Campus"])))
 
-                    profesor_str = str(row["Profesor"]).strip()
-                    full_name = profesor_str.split()
-                    if len(full_name) < 2:
+                    profesor_str = s(row["Profesor"]).strip()
+                    if not profesor_str:
+                        failed_rows.append(f"Fila {fila}: Nombre de docente vacío.")
+                        continue
+
+                    parts = profesor_str.split()
+                    if len(parts) < 2:
                         failed_rows.append(f"Fila {fila}: Nombre de docente inválido: '{profesor_str}'")
                         continue
 
-                    nombre = " ".join(full_name[:-1]).strip()
-                    apellidos = full_name[-1].strip()
-                    docente = docentes.get(f"{nombre} {apellidos}".lower())
+                    nombre = " ".join(parts[:-1]).strip()
+                    apellidos = parts[-1].strip()
+                    docente = docentes.get(norm(f"{nombre} {apellidos}"))
 
-                    # Validar existencia de relaciones
                     if not facultad or not escuela or not campus or not docente:
                         if not facultad:
                             failed_rows.append(f"Fila {fila}: Facultad no encontrada: '{row['Facultad']}'")
@@ -1670,33 +1735,36 @@ class ImportAsignacion(APIView):
                             failed_rows.append(f"Fila {fila}: Docente no encontrado: '{profesor_str}'")
                         continue
 
-                    nrc = str(row["NRC"]).strip()
+                    nrc = s(row["NRC"]).strip()
+                    if nrc.endswith(".0"):
+                        nrc = nrc[:-2]
+
                     if nrc in existing_nrcs:
                         duplicates.append(f"Fila {fila}: Duplicado NRC {nrc}")
                         continue
-                    existing_nrcs.add(nrc)  # Agregar para evitar duplicados en batch
+                    existing_nrcs.add(nrc)
 
                     asignacion = AsignacionDocente(
                         nrc=nrc,
-                        clave=str(row["Clave"]).strip(),
-                        nombre=str(row["Asignatura"]).strip(),
-                        codigo=str(row["Codigo"]).strip(),
+                        clave=s(row["Clave"]).strip(),
+                        nombre=s(row["Asignatura"]).strip(),
+                        codigo=s(row["Codigo"]).strip(),
                         docenteFk=docente,
-                        seccion=str(row["Seccion"]).strip(),
-                        modalidad=str(row["Modalidad"]).strip(),
+                        seccion=s(row["Seccion"]).strip(),
+                        modalidad=s(row["Modalidad"]).strip(),
                         campusFk=campus,
                         universidadFk=universidad,
                         facultadFk=facultad,
                         escuelaFk=escuela,
-                        tipo=str(row["Tipo"]).strip(),
-                        cupo=int(row["Cupo"]),
-                        inscripto=int(row["Inscripto"]),
-                        horario=str(row["Horario"]).strip(),
-                        dias=str(row["Dias"]).strip(),
-                        aula=str(row["Aula"]).strip(),
-                        creditos=int(row["Creditos"]),
+                        tipo=s(row["Tipo"]).strip(),
+                        cupo=to_int_safe(row["Cupo"], "Cupo"),
+                        inscripto=to_int_safe(row["Inscripto"], "Inscripto"),
+                        horario=s(row["Horario"]).strip(),
+                        dias=s(row["Dias"]).strip(),
+                        aula=s(row["Aula"]).strip(),
+                        creditos=to_int_safe(row["Creditos"], "Creditos"),
                         periodoFk=periodo,
-                        usuario_registro=request.user.username if request.user.is_authenticated else "sistema"
+                        usuario_registro=request.user.username if request.user.is_authenticated else "sistema",
                     )
                     records_to_create.append(asignacion)
 
@@ -1704,25 +1772,23 @@ class ImportAsignacion(APIView):
                     failed_rows.append(f"Fila {fila}: Error inesperado: {str(e)}")
 
             if failed_rows:
-                return Response({
-                    "error": "Errores en filas.",
-                    "failed_records": failed_rows
-                }, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"error": "Errores en filas.", "failed_records": failed_rows},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
             if records_to_create:
                 with transaction.atomic():
-                    AsignacionDocente.objects.bulk_create(records_to_create)
+                    AsignacionDocente.objects.bulk_create(records_to_create, batch_size=1000)
 
-            return Response({
-                "message": f"{len(records_to_create)} registros importados exitosamente.",
-                "duplicados": duplicates
-            }, status=status.HTTP_201_CREATED)
+            return Response(
+                {"message": f"{len(records_to_create)} registros importados exitosamente.", "duplicados": duplicates},
+                status=status.HTTP_201_CREATED
+            )
 
         except Exception as e:
-            return Response(
-                {"error": f"Error inesperado: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response({"error": f"Error inesperado: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class ImportUniversidad(APIView):
     parser_classes = [MultiPartParser, FormParser]

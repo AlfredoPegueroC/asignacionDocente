@@ -1106,6 +1106,9 @@ def asignacionDocenteExport(request):
             "Dias": asignacion.dias,
             "Aula": asignacion.aula,
             "Creditos": asignacion.creditos,
+            "Status": asignacion.accion,
+            "Modificacion": asignacion.modificacion,
+            "Comentario": asignacion.comentario,
         })
 
     columns = [
@@ -1126,6 +1129,9 @@ def asignacionDocenteExport(request):
         "Dias",
         "Aula",
         "Creditos",
+        "Status",
+        "Modificacion",
+        "Comentario",
     ]
 
     df = pd.DataFrame(data, columns=columns)

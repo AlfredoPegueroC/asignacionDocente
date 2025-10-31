@@ -457,26 +457,28 @@ def update_accion(request, codigo):
     try:
         accion = Accion.objects.get(AccionCodigo=codigo)
     except Accion.DoesNotExist:
-        return JsonResponse({'error': 'Accion not found'}, status=status.HTTP_404_NOT_FOUND)
-    if request.method in ['PUT', 'PATCH']:
-        ser = AccionSerializer(accion, data=request.data, partial=(request.method == 'PATCH'))
-        if ser.is_valid():
-            ser.save()
-            return JsonResponse(ser.data, status=status.HTTP_200_OK)
-        return JsonResponse(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Accion not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    ser = AccionSerializer(accion, data=request.data, partial=(request.method == 'PATCH'))
+    if ser.is_valid():
+        ser.save()
+        return Response(ser.data, status=status.HTTP_200_OK)
+    return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
     
 @api_view(['PUT', 'PATCH'])
 def update_status(request, codigo):
     try:
         status_obj = Status.objects.get(StatusCodigo=codigo)
     except Status.DoesNotExist:
-        return JsonResponse({'error': 'Status not found'}, status=status.HTTP_404_NOT_FOUND)
-    if request.method in ['PUT', 'PATCH']:
-        ser = StatusSerializer(status_obj, data=request.data, partial=(request.method == 'PATCH'))
-        if ser.is_valid():
-            ser.save()
-            return JsonResponse(ser.data, status=status.HTTP_200_OK)
-        return JsonResponse(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Status not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    ser = StatusSerializer(status_obj, data=request.data, partial=(request.method == 'PATCH'))
+    if ser.is_valid():
+        ser.save()
+        return Response(ser.data, status=status.HTTP_200_OK)
+    return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 #endregion
@@ -701,21 +703,24 @@ def details_Asignacion(request, pk):
 
 @api_view(['GET'])
 def details_Accion(request, codigo):
-    accion = Accion.objects.filter(AccionCodigo=codigo).first()
-    if accion is None:
+    try:
+        accion = Accion.objects.get(AccionCodigo=codigo)
+    except Accion.DoesNotExist:
         return Response({'error': 'Accion not found'}, status=status.HTTP_404_NOT_FOUND)
-    serializer = AccionSerializer(accion)
 
+    serializer = AccionSerializer(accion)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 def details_Status(request, codigo):
-    status_obj = Status.objects.filter(StatusCodigo=codigo).first()
-    if status_obj is None:
+    try:
+        status_obj = Status.objects.get(StatusCodigo=codigo)
+    except Status.DoesNotExist:
         return Response({'error': 'Status not found'}, status=status.HTTP_404_NOT_FOUND)
-    serializer = StatusSerializer(status_obj)
 
+    serializer = StatusSerializer(status_obj)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 #endregion
 

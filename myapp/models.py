@@ -158,7 +158,6 @@ class Status(models.Model):
     StatusID = models.AutoField(primary_key=True)
     StatusCodigo = models.CharField(max_length=25, unique=True)
     StatusNombre = models.CharField(max_length=50, unique=True)
-    StatusDescripcion = models.CharField(max_length=255, null=False)
     StatusFechaRegistro = models.DateTimeField(auto_now_add=True)
     UsuarioRegistro = models.CharField(max_length=50, blank=True, null=True, default='admin')
     
@@ -178,7 +177,6 @@ class Accion(models.Model):
     AccionID = models.AutoField(primary_key=True)
     AccionCodigo = models.CharField(max_length=25, unique=True)
     AccionNombre = models.CharField(max_length=50, unique=True)
-    AccionDescripcion = models.CharField(max_length=255, null=False)
     AccionFechaRegistro = models.DateTimeField(auto_now_add=True)
     UsuarioRegistro = models.CharField(max_length=50, blank=True, null=True, default='admin')
     

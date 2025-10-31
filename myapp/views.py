@@ -30,7 +30,9 @@ from .models import (
     PeriodoAcademico,
     AsignacionDocente,
     APILog,
-    Asignatura
+    Asignatura,
+    Accion,
+    Status,
     )
 from .handles import createHandle, getAllHandle, deleteHandler,getAllHandle_asignacion, getAll, updateHandle
 from django.views.decorators.csrf import csrf_exempt

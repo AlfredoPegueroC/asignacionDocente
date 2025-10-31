@@ -162,6 +162,7 @@ class CampusSerializer(serializers.ModelSerializer):
             'CampusID',
             'CampusCodigo',
             'CampusNombre',
+            'CampusDirector',
             'CampusDireccion',
             'CampusPais',
             'CampusProvincia',

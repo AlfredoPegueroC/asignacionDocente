@@ -4,6 +4,9 @@ from rest_framework.pagination import PageNumberPagination
 from django.db.models import Q, ForeignKey, OneToOneField, ManyToManyField
 from django.db.models.fields.related import ForeignKey
 
+from django.db.models import Q, Value as V, CharField
+from django.db.models.functions import Concat, Lower, Coalesce
+from django.core.exceptions import FieldError
 
 
 def createHandle(request, serializers):
@@ -38,7 +41,21 @@ def getAllHandle(request, modelData, serializer_class):
     try:
         queryset = modelData.objects.all()
 
-        # Detectar relaciones para optimizar la consulta
+        # Diccionario de columnas que deben ir siempre ordenadas alfabéticamente
+        # Clave = nombre del modelo o tabla / Valor = lista de campos a ordenar
+        alphabetical_fields = {
+            "Universidad": ["UniversidadNombre"],
+            "Facultad": ["FacultadNombre"],
+            "Escuela": ["EscuelaNombre"],
+            "Docente": ["DocenteNombre", "DocenteApellido"],
+            "Campus": ["CampusNombre"],
+            "Asignatura": ["AsignaturaNombre"],
+            "Periodo": ["PeriodoNombre"],
+            "CategoriaDocente": ["CategoriaNombre"],
+            "TipoDocenteDescripcion": ["TipoDocenteDescripcion"],
+        }
+
+        # Detectar relaciones (igual que antes)
         select_related_fields = []
         prefetch_related_fields = []
         for field in modelData._meta.get_fields():
@@ -52,19 +69,17 @@ def getAllHandle(request, modelData, serializer_class):
         if prefetch_related_fields:
             queryset = queryset.prefetch_related(*prefetch_related_fields)
 
-        # Filtro búsqueda general
-        search_query = request.query_params.get('search', None)
+        # Filtro búsqueda (igual)
+        search_query = request.query_params.get("search", None)
         if search_query:
             query = Q()
-            # Campos directos
             for field in modelData._meta.get_fields():
-                if hasattr(field, 'get_internal_type') and field.get_internal_type() in ['CharField', 'TextField']:
+                if hasattr(field, "get_internal_type") and field.get_internal_type() in ["CharField", "TextField"]:
                     query |= Q(**{f"{field.name}__icontains": search_query})
-                # Campos de relaciones FK/OneToOne
                 elif isinstance(field, (ForeignKey, OneToOneField)):
                     related_model = field.related_model
                     for rel_field in related_model._meta.get_fields():
-                        if hasattr(rel_field, 'get_internal_type') and rel_field.get_internal_type() in ['CharField', 'TextField']:
+                        if hasattr(rel_field, "get_internal_type") and rel_field.get_internal_type() in ["CharField", "TextField"]:
                             query |= Q(**{f"{field.name}__{rel_field.name}__icontains": search_query})
             queryset = queryset.filter(query)
 
@@ -76,10 +91,15 @@ def getAllHandle(request, modelData, serializer_class):
         if filters:
             queryset = queryset.filter(**filters)
 
-        # Orden
-        sort_by = request.query_params.get('sort_by', 'id')
-        if hasattr(modelData, sort_by.lstrip('-')):
+        # Ordenamiento (aquí se agrega la lógica del diccionario)
+        sort_by = request.query_params.get("sort_by", "id")
+        if hasattr(modelData, sort_by.lstrip("-")):
             queryset = queryset.order_by(sort_by)
+        else:
+            # Si el modelo tiene campos definidos para orden alfabético, úsalos
+            model_name = modelData.__name__
+            if model_name in alphabetical_fields:
+                queryset = queryset.order_by(*alphabetical_fields[model_name])
 
         # Paginación
         paginator = CustomPagination()
@@ -90,10 +110,7 @@ def getAllHandle(request, modelData, serializer_class):
         return paginator.get_paginated_response(serializer.data)
 
     except Exception as e:
-        return Response(
-            {"error": str(e)},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
 def getAll(request, modelData, serializer_class):
@@ -126,33 +143,28 @@ def getAll(request, modelData, serializer_class):
 
 def getAllHandle_asignacion(request, modelData, serializer_class):
     try:
-        # --- Optimización: evitar N+1 queries ---
         queryset = modelData.objects.select_related(
             'docenteFk', 'campusFk', 'universidadFk', 'facultadFk', 'escuelaFk', 'periodoFk'
         ).all()
 
-        # --- Búsqueda global incluyendo ForeignKey ---
-        search_query = request.query_params.get('search', None)
+        # --- Búsqueda global ---
+        search_query = request.query_params.get('search')
         if search_query:
             query = Q()
             terms = search_query.split()
-
             for term in terms:
-                term_query = Q()
+                term_q = Q()
                 for field in modelData._meta.get_fields():
                     if hasattr(field, 'get_internal_type'):
-                        field_type = field.get_internal_type()
-                        if field_type in ['CharField', 'TextField']:
-                            term_query |= Q(**{f"{field.name}__icontains": term})
-                        elif field_type == 'ForeignKey':
-                            related_model = field.related_model
-                            for related_field in related_model._meta.get_fields():
-                                if hasattr(related_field, 'get_internal_type') and related_field.get_internal_type() in ['CharField', 'TextField']:
-                                    term_query |= Q(**{f"{field.name}__{related_field.name}__icontains": term})
-
-                # cada palabra debe aparecer en al menos un campo
-                query &= term_query
-
+                        t = field.get_internal_type()
+                        if t in ['CharField', 'TextField']:
+                            term_q |= Q(**{f"{field.name}__icontains": term})
+                        elif t == 'ForeignKey':
+                            rel_model = field.related_model
+                            for rel_field in rel_model._meta.get_fields():
+                                if hasattr(rel_field, 'get_internal_type') and rel_field.get_internal_type() in ['CharField', 'TextField']:
+                                    term_q |= Q(**{f"{field.name}__{rel_field.name}__icontains": term})
+                query &= term_q
             queryset = queryset.filter(query)
 
         # --- Filtros dinámicos ---
@@ -163,29 +175,53 @@ def getAllHandle_asignacion(request, modelData, serializer_class):
             elif key == "periodo":
                 filters["periodoFk__PeriodoNombre"] = value
             else:
-                filters[key] = value  # permite filtros exactos o campo__subcampo
-
+                filters[key] = value
         if filters:
             queryset = queryset.filter(**filters)
 
-        # --- Ordenamiento dinámico ---
-        sort_by = request.query_params.get('sort_by', 'AsignacionID')
-        if sort_by.lstrip('-') in [f.name for f in modelData._meta.fields]:
-            queryset = queryset.order_by(sort_by)
+        # --- Orden estable: por docente + desempates ---
+        sort_by = (request.query_params.get('sort_by') or '').strip()
 
-        # --- Paginación con clase personalizada ---
+        # Si piden explícitamente docenteNombre (o nada), orden agrupado y estable:
+        if sort_by in ('', 'docenteNombre', '-docenteNombre'):
+            desc = (sort_by == '-docenteNombre')
+
+            queryset = queryset.annotate(
+                _docenteNombre_sort=Lower(
+                    Concat(
+                        Coalesce('docenteFk__DocenteNombre', V('')),
+                        V(' '),
+                        Coalesce('docenteFk__DocenteApellido', V('')),
+                        output_field=CharField(),
+                    )
+                )
+            ).order_by(
+                '-_docenteNombre_sort' if desc else '_docenteNombre_sort',
+                # Desempates dentro del mismo docente:
+                '-nombre' if desc else 'nombre',
+                '-seccion' if desc else 'seccion',
+                '-nrc' if desc else 'nrc',
+                # Tie-breaker final y único:
+                '-AsignacionID' if desc else 'AsignacionID',
+            )
+        else:
+            # Cualquier otro sort_by se respeta pero con tie-breaker estable
+            try:
+                queryset = queryset.order_by(
+                    sort_by,
+                    'AsignacionID' if not sort_by.startswith('-') else '-AsignacionID'
+                )
+            except FieldError:
+                queryset = queryset.order_by('AsignacionID')
+
+        # --- Paginación + Serialización ---
         paginator = CustomPagination()
-        paginated_queryset = paginator.paginate_queryset(queryset, request)
-
-        serializer = serializer_class(paginated_queryset, many=True)
+        page_qs = paginator.paginate_queryset(queryset, request)
+        serializer = serializer_class(page_qs, many=True)
         return paginator.get_paginated_response(serializer.data)
 
     except Exception as e:
-        return Response(
-            {"error": str(e)},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 def updateHandle(request, modelData, serializerClass, pk):
     try:
         instance = get_object_or_404(modelData, pk=pk)

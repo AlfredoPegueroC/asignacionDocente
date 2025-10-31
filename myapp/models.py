@@ -35,6 +35,7 @@ class Campus(models.Model):
     CampusCodigo = models.CharField(max_length=25, unique=True)
     CampusNombre = models.CharField(max_length=100, unique=True)
     CampusDireccion = models.CharField(max_length=255, blank=True, null=True)
+    CampusDirector = models.CharField(max_length=100, blank=True, null=True)
     CampusPais = models.CharField(max_length=100, blank=True, null=True)
     CampusProvincia = models.CharField(max_length=100, blank=True, null=True)
     CampusCiudad = models.CharField(max_length=100, blank=True, null=True)
@@ -112,16 +113,16 @@ class Escuela(models.Model):
     Escuela_UniversidadFK = models.ForeignKey(
         Universidad,
         on_delete=models.CASCADE,
-        related_name="escuelas"  # Desde Universidad
+        related_name="escuelas" 
     )
     Escuela_facultadFK = models.ForeignKey(
         Facultad,
         on_delete=models.CASCADE,
-        related_name="escuelas"  # Desde Facultad
+        related_name="escuelas"  
     )
 
     def __str__(self):
-        return self.EscuelaNombre  # Corregí de "return self.nombre"
+        return self.EscuelaNombre 
 
     class Meta:
         indexes = [
@@ -152,6 +153,47 @@ class TipoDocente(models.Model):
             models.Index(fields=['TipoDocenteDescripcion'], name='idx_tipo_descripcion'),
             models.Index(fields=['TipoDocenteEstado'], name='idx_tipo_estado'),
         ]  
+        
+class Status(models.Model):
+    StatusID = models.AutoField(primary_key=True)
+    StatusCodigo = models.CharField(max_length=25, unique=True)
+    StatusNombre = models.CharField(max_length=50, unique=True)
+    StatusDescripcion = models.CharField(max_length=255, null=False)
+    StatusFechaRegistro = models.DateTimeField(auto_now_add=True)
+    UsuarioRegistro = models.CharField(max_length=50, blank=True, null=True, default='admin')
+    
+    Status_UniversidadFK = models.ForeignKey(
+        Universidad,
+        on_delete=models.CASCADE,
+        related_name="status_lista"
+    )
+    def __str__(self):
+        return self.StatusNombre
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['StatusNombre'], name='idx_status_nombre'),
+        ]
+class Accion(models.Model):
+    AccionID = models.AutoField(primary_key=True)
+    AccionCodigo = models.CharField(max_length=25, unique=True)
+    AccionNombre = models.CharField(max_length=50, unique=True)
+    AccionDescripcion = models.CharField(max_length=255, null=False)
+    AccionFechaRegistro = models.DateTimeField(auto_now_add=True)
+    UsuarioRegistro = models.CharField(max_length=50, blank=True, null=True, default='admin')
+    
+    Accion_UniversidadFK = models.ForeignKey(
+        Universidad,
+        on_delete=models.CASCADE,
+        related_name="acciones_lista"
+    )
+    def __str__(self):
+        return self.AccionNombre
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['AccionNombre'], name='idx_accion_nombre'),
+        ]
 
 class CategoriaDocente(models.Model):
     CategoriaID = models.AutoField(primary_key=True)
@@ -241,8 +283,7 @@ class Docente(models.Model):
     DocenteCorreoElectronico = models.EmailField(max_length=100)
     DocenteDireccion = models.CharField(max_length=200)
     DocenteEstado = models.CharField(
-        max_length=15,
-        choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')],
+        max_length=50,
         default='Activo')
     DocenteObservaciones = models.TextField(blank=True, null=True)
     DocenteFechaRegistro = models.DateTimeField(auto_now_add=True)
@@ -314,7 +355,7 @@ class PeriodoAcademico(models.Model):
         
 class AsignacionDocente(models.Model):
     AsignacionID = models.AutoField(primary_key=True)
-    nrc = models.CharField(max_length=10)
+    nrc = models.CharField(max_length=10, null=True, blank=True, default='N/A')
     clave = models.CharField(max_length=10)
     nombre = models.CharField(max_length=150, blank=True, null=True)
     codigo = models.CharField(max_length=10, blank=True, null=True)

@@ -29,6 +29,9 @@ urlpatterns = [
     path('api/periodoacademico/create', views.create_PeriodoAcademico),
     path('api/asignacion/create', views.create_asignacion),
     path('api/asignatura/create', views.create_Asignatura),
+    path('api/accion/create', views.create_accion),
+    path('api/status/create', views.create_status),
+    
     # URLS GET OR RETRIEVE
     path('api/universidad', views.getAllUniversidad),
     path('api/campus', views.getAllCampus),
@@ -41,6 +44,9 @@ urlpatterns = [
     path('api/asignacion', views.getAllAsignacion),
     path('api/asignacion_frontend', views.getAllAsignacion_frontend),
     path('api/asignatura', views.getAllAsignatura),
+    path('api/accion', views.getAllAccion),
+    path('api/status', views.getAllStatus),
+    
     # test
     path('universidades', views.get_Universidad),
     path('campus', views.get_Campus),
@@ -50,6 +56,8 @@ urlpatterns = [
     path('categoriadocentes', views.get_CategoriaDocente),
     path('periodos', views.get_PeriodoAcademico),
     path('docentes', views.get_Docente),
+    path('acciones', views.get_acciones),
+    path('status', views.get_status),
 
     # URLS UPDATE
     path('api/universidad/edit/<str:codigo>/', views.update_universidad),
@@ -62,6 +70,8 @@ urlpatterns = [
     path('api/periodoacademico/edit/<str:codigo>/', views.update_periodoAcademico),
     path('api/asignacion/edit/<int:pk>/', views.update_asignacion),
     path('api/asignatura/edit/<str:codigo>/', views.update_asignatura),
+    path('api/accion/edit/<str:codigo>/', views.update_accion),
+    path('api/status/edit/<str:codigo>/', views.update_status),
     # URLS DELETE
     path('api/universidad/delete/<pk>/', views.delete_universidad),
     path('api/campus/delete/<int:pk>/', views.delete_campus),
@@ -74,6 +84,8 @@ urlpatterns = [
     path('api/asignacionDocente/delete/<int:pk>/', views.delete_asignacionDocente),
     path('api/asignacionDocente/delete', views.delete_asignacion_by_period),
     path('api/asignatura/delete/<str:codigo>/', views.delete_asignatura),
+    path('api/accion/delete/<int:pk>/', views.delete_accion),
+    path('api/status/delete/<int:pk>/', views.delete_status),
     # DETAILS
     path('api/universidad/<str:codigo>/', views.details_universidad, name='detalle_universidad'),
     path("api/campus/<str:codigo>/", views.details_campus),
@@ -85,6 +97,8 @@ urlpatterns = [
     path('api/periodoacademico/<str:codigo>/', views.details_periodoAcademico, name='detalle_periodoAcademico'),
     path('api/asignacion/<int:pk>/', views.details_Asignacion),
     path('api/asignatura/<str:codigo>/', views.details_asignatura, name='detalle_asignatura'),
+    path('api/accion/<str:codigo>', views.details_acciones, name='detalle_accion'),
+    path('api/status/<str:codigo>', views.details_status, name='detalle_status'),
     # AUTH
     path('api/login', views.login_view),
     path('api/logout', views.logout_view),

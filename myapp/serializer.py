@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Universidad,Campus, Facultad, Escuela, TipoDocente, CategoriaDocente, Docente, PeriodoAcademico, AsignacionDocente, APILog, Asignatura, Profile
+from .models import Universidad,Campus, Facultad, Escuela, TipoDocente, CategoriaDocente, Docente, PeriodoAcademico, AsignacionDocente, APILog, Asignatura, Profile, Accion, Status
 from django.contrib.auth.models import User, Group
 from rest_framework import serializers
 
@@ -447,5 +447,40 @@ class AsignacionDocenteSerializer_frontend(serializers.ModelSerializer):
             return f"{docente.DocenteNombre} {docente.DocenteApellido}"
         return None
     
-    
-    
+ 
+class AccionSerializer(serializers.ModelSerializer):
+    Accion_UniversidadFK = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
+    universidadNombre = serializers.CharField(source='Accion_UniversidadFK.UniversidadNombre', read_only=True)
+    universidadCodigo = serializers.CharField(source='Accion_UniversidadFK.UniversidadCodigo', read_only=True)
+
+    class Meta:
+        model = Accion
+        fields = [
+            'AccionID',
+            'AccionCodigo',
+            'AccionNombre',
+            'AccionDescripcion',
+            'AccionFechaRegistro',
+            'UsuarioRegistro',
+            'Accion_UniversidadFK',
+            'universidadNombre',
+            'universidadCodigo',
+        ]   
+class StatusSerializer(serializers.ModelSerializer):
+    Status_UniversidadFK = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
+    universidadNombre = serializers.CharField(source='Status_UniversidadFK.UniversidadNombre', read_only=True)
+    universidadCodigo = serializers.CharField(source='Status_UniversidadFK.UniversidadCodigo', read_only=True)
+
+    class Meta:
+        model = Status
+        fields = [
+            'StatusID',
+            'StatusCodigo',
+            'StatusNombre',
+            'StatusDescripcion',
+            'StatusFechaRegistro',
+            'UsuarioRegistro',
+            'Status_UniversidadFK',
+            'universidadNombre',
+            'universidadCodigo',
+        ]

@@ -15,7 +15,9 @@ from .serializer import (
   UserSerializer,
   RegistroUsuarioSerializer,
   APILogSerializer,
-  AsignaturaSerializer
+  AsignaturaSerializer,
+  AccionSerializer,
+  StatusSerializer,
 )
 from .models import (
     Universidad, 
@@ -147,6 +149,14 @@ def create_PeriodoAcademico(request):
 @api_view(['POST'])
 def create_asignacion(request):
   return createHandle(request, AsignacionDocenteSerializer)
+
+@api_view(['POST'])
+def create_accion(request):
+    return createHandle(request, AccionSerializer)
+
+@api_view(['POST'])
+def create_status(request):
+    return createHandle(request, StatusSerializer)
 #endregion
 
 #region RETRIEVE OR READ
@@ -206,12 +216,15 @@ def getAllAsignacion(request):
 def getAllAsignacion_frontend(request):
   return getAllHandle_asignacion(request,AsignacionDocente,AsignacionDocenteSerializer_frontend)
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def getAllAccion(request):
+  return getAllHandle(request, Accion, AccionSerializer)
 
-
-# @api_view(['GET'])
-# @permission_classes([AllowAny])
-# def get_Universidad(request):
-#     return getAll(request, Universidad, UniversidadSerializer)
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def getAllStatus(request):
+    return getAllHandle(request, Status, StatusSerializer)
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
@@ -279,6 +292,17 @@ def get_Docente(request):
 @permission_classes([AllowAny])
 def get_PeriodoAcademico(request):
     return getAll(request, PeriodoAcademico, PeriodoAcademicoSerializer)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_acciones(request):
+    return getAll(request, Accion, AccionSerializer)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_status(request):
+    return getAll(request, Status, StatusSerializer)
+
 #endregion
 
 
@@ -426,6 +450,32 @@ def update_asignacion(request, pk):
             return JsonResponse(ser.data, status=status.HTTP_200_OK)
         return JsonResponse(ser.errors, status=status.HTTP_400_BAD_REQUEST)
 
+@api_view(['PUT', 'PATCH'])
+def update_accion(request, codigo):
+    try:
+        accion = Accion.objects.get(AccionCodigo=codigo)
+    except Accion.DoesNotExist:
+        return JsonResponse({'error': 'Accion not found'}, status=status.HTTP_404_NOT_FOUND)
+    if request.method in ['PUT', 'PATCH']:
+        ser = AccionSerializer(accion, data=request.data, partial=(request.method == 'PATCH'))
+        if ser.is_valid():
+            ser.save()
+            return JsonResponse(ser.data, status=status.HTTP_200_OK)
+        return JsonResponse(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+@api_view(['PUT', 'PATCH'])
+def update_status(request, codigo):
+    try:
+        status_obj = Status.objects.get(StatusCodigo=codigo)
+    except Status.DoesNotExist:
+        return JsonResponse({'error': 'Status not found'}, status=status.HTTP_404_NOT_FOUND)
+    if request.method in ['PUT', 'PATCH']:
+        ser = StatusSerializer(status_obj, data=request.data, partial=(request.method == 'PATCH'))
+        if ser.is_valid():
+            ser.save()
+            return JsonResponse(ser.data, status=status.HTTP_200_OK)
+        return JsonResponse(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 #endregion
 
@@ -532,6 +582,23 @@ def delete_campus(request, pk):
     except Campus.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
 
+@api_view(['DELETE'])
+def delete_accion(request, pk):
+    try:
+        accion = Accion.objects.get(pk=pk)
+        accion.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except Accion.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+@api_view(['DELETE'])
+def delete_status(request, pk):
+    try:
+        status_obj = Status.objects.get(pk=pk)
+        status_obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except Status.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
 
 
 #endregion
@@ -629,6 +696,25 @@ def details_Asignacion(request, pk):
     serializer = AsignacionDocenteSerializer(asignacion)
 
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def details_Accion(request, codigo):
+    accion = Accion.objects.filter(AccionCodigo=codigo).first()
+    if accion is None:
+        return Response({'error': 'Accion not found'}, status=status.HTTP_404_NOT_FOUND)
+    serializer = AccionSerializer(accion)
+
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def details_Status(request, codigo):
+    status_obj = Status.objects.filter(StatusCodigo=codigo).first()
+    if status_obj is None:
+        return Response({'error': 'Status not found'}, status=status.HTTP_404_NOT_FOUND)
+    serializer = StatusSerializer(status_obj)
+
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
 #endregion
 
 #region Auth
@@ -733,6 +819,7 @@ def CampusExport(request):
         data.append({
             "Codigo": campus.CampusCodigo,
             "Nombre": campus.CampusNombre,
+            "Director": campus.CampusDirector,
             "Direccion": campus.CampusDireccion,
             "Pais": campus.CampusPais,
             "Provincia": campus.CampusProvincia,
@@ -745,6 +832,7 @@ def CampusExport(request):
     columns = [
         "Codigo",
         "Nombre",
+        "Director",
         "Direccion",
         "Pais",
         "Provincia",

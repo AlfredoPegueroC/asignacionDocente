@@ -373,7 +373,7 @@ class AsignacionDocente(models.Model):
 
     comentario = models.CharField(max_length=255, blank=True, null=True, default='observaciones')
     accion = models.CharField(max_length=50, blank=True, null=True, default='Pendiente Asignar')
-    modificacion = models.CharField(max_length=100, blank=True, null=True)
+    modificacion = models.CharField(max_length=100, blank=True, null=True, default='--------')
 
     fecha_registro = models.DateTimeField(auto_now_add=True)
     fecha_modificacion = models.DateTimeField(auto_now=True)

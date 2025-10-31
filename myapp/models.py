@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
-
+from django.db.models import Q
 User = get_user_model()
 
 class Universidad(models.Model):
@@ -353,10 +353,14 @@ class PeriodoAcademico(models.Model):
         
 class AsignacionDocente(models.Model):
     AsignacionID = models.AutoField(primary_key=True)
-    nrc = models.CharField(max_length=10, null=True, blank=True, default='N/A')
+
+    nrc = models.CharField(max_length=10, null=True, blank=True)  # sin default 'N/A'
     clave = models.CharField(max_length=10)
     nombre = models.CharField(max_length=150, blank=True, null=True)
+
+    # Puede faltar el código → mejor null; “N/A” lo mostrarás en serializer/UI
     codigo = models.CharField(max_length=10, blank=True, null=True)
+
     seccion = models.CharField(max_length=10, blank=True, null=True)
     modalidad = models.CharField(max_length=30, blank=True, null=True)
     cupo = models.IntegerField(blank=True, null=True)
@@ -366,17 +370,20 @@ class AsignacionDocente(models.Model):
     aula = models.CharField(max_length=50, blank=True, null=True)
     creditos = models.DecimalField(max_digits=4, decimal_places=2, blank=True, null=True)
     tipo = models.CharField(max_length=20, blank=True, null=True)
+
     comentario = models.CharField(max_length=255, blank=True, null=True, default='observaciones')
     accion = models.CharField(max_length=50, blank=True, null=True, default='Pendiente Asignar')
-    modificacion = models.CharField(max_length=100, blank=True, default='Pendiente Modificar')
+    modificacion = models.CharField(max_length=100, blank=True, null=True, default='Pendiente Modificar')
+
     fecha_registro = models.DateTimeField(auto_now_add=True)
     fecha_modificacion = models.DateTimeField(auto_now=True)
     usuario_registro = models.CharField(max_length=50, blank=True, null=True, default='admin')
 
-    # Foreign keys con related_name
+    # Foreign keys (permitir que falte el docente)
     docenteFk = models.ForeignKey(
         Docente,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,      # antes: CASCADE
+        null=True, blank=True,
         related_name='asignaciones'
     )
     campusFk = models.ForeignKey(
@@ -407,7 +414,17 @@ class AsignacionDocente(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['nrc', 'periodoFk'], name='unique_nrc_periodo')
+            # Unicidad solo si NRC no es nulo
+            models.UniqueConstraint(
+                fields=['nrc', 'periodoFk'],
+                name='unique_nrc_periodo',
+                condition=Q(nrc__isnull=False)
+            ),
+            # Opcional: exigir que exista al menos docente o código
+            # models.CheckConstraint(
+            #     check=Q(docenteFk__isnull=False) | Q(codigo__isnull=False),
+            #     name="asignacion_docente_o_codigo_presente"
+            # )
         ]
         indexes = [
             models.Index(fields=['nrc'], name='idx_asignacion_nrc'),
@@ -418,7 +435,7 @@ class AsignacionDocente(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.nrc} - {self.nombre}"
+        return f"{self.nrc or 'N/A'} - {self.nombre or 'N/A'}"
 
 
 class APILog(models.Model):

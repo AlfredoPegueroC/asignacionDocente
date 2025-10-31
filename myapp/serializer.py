@@ -398,35 +398,103 @@ class PeriodoAcademicoSerializer(serializers.ModelSerializer):
         ]
 
 class AsignacionDocenteSerializer(serializers.ModelSerializer):
-    docenteFk = serializers.PrimaryKeyRelatedField(queryset=Docente.objects.all())
+    # FK: docente puede ser NULL
+    docenteFk = serializers.PrimaryKeyRelatedField(
+        queryset=Docente.objects.all(),
+        allow_null=True,
+        required=False
+    )
     campusFk = serializers.PrimaryKeyRelatedField(queryset=Campus.objects.all())
     universidadFk = serializers.PrimaryKeyRelatedField(queryset=Universidad.objects.all())
     facultadFk = serializers.PrimaryKeyRelatedField(queryset=Facultad.objects.all())
     escuelaFk = serializers.PrimaryKeyRelatedField(queryset=Escuela.objects.all())
     periodoFk = serializers.PrimaryKeyRelatedField(queryset=PeriodoAcademico.objects.all())
 
-    docenteNombre = serializers.CharField(source="docenteFk.get_nombre_completo", read_only=True)
+    # Displays seguros (evitan 500 si hay NULL)
+    docenteNombre = serializers.SerializerMethodField()
     campusNombre = serializers.CharField(source="campusFk.CampusNombre", read_only=True)
     universidadNombre = serializers.CharField(source="universidadFk.UniversidadNombre", read_only=True)
     facultadNombre = serializers.CharField(source="facultadFk.FacultadNombre", read_only=True)
     escuelaNombre = serializers.CharField(source="escuelaFk.EscuelaNombre", read_only=True)
     periodoNombre = serializers.CharField(source="periodoFk.PeriodoNombre", read_only=True)
 
-    universidadCodigo = serializers.CharField(source='universidadFk.UniversidadCodigo', read_only=True)
-    campusCodigo = serializers.CharField(source='campusFk.CampusCodigo', read_only=True)
-    facultadCodigo = serializers.CharField(source='facultadFk.FacultadCodigo', read_only=True)
-    escuelaCodigo = serializers.CharField(source='escuelaFk.EscuelaCodigo', read_only=True)
-    periodoCodigo = serializers.CharField(source='periodoFk.PeriodoCodigo', read_only=True)
+    universidadCodigo = serializers.CharField(source="universidadFk.UniversidadCodigo", read_only=True)
+    campusCodigo = serializers.CharField(source="campusFk.CampusCodigo", read_only=True)
+    facultadCodigo = serializers.CharField(source="facultadFk.FacultadCodigo", read_only=True)
+    escuelaCodigo = serializers.CharField(source="escuelaFk.EscuelaCodigo", read_only=True)
+    periodoCodigo = serializers.CharField(source="periodoFk.PeriodoCodigo", read_only=True)
+
+    # Para mostrar "N/A" sin escribirlo en BD
+    codigo_display = serializers.SerializerMethodField()
+    nrc_display = serializers.SerializerMethodField()
 
     class Meta:
         model = AsignacionDocente
         fields = [
-            'AsignacionID', 'nrc', 'clave', 'nombre', 'codigo', 'seccion',
-            'modalidad', 'cupo', 'inscripto', 'horario', 'dias', 'aula',
-            'creditos', 'tipo', 'accion', 'modificacion','fecha_registro', 'usuario_registro',
-            'docenteFk', 'campusFk', 'universidadFk', 'facultadFk', 'escuelaFk', 'periodoFk',
-            'docenteNombre', 'campusNombre', 'universidadNombre', 'comentario', 'facultadNombre', 'escuelaNombre', 'periodoNombre', 'universidadCodigo', 'campusCodigo', 'facultadCodigo', 'escuelaCodigo', 'periodoCodigo'
+            'AsignacionID',
+            'nrc', 'nrc_display',
+            'clave',
+            'nombre',
+            'codigo', 'codigo_display',
+            'seccion',
+            'modalidad',
+            'cupo',
+            'inscripto',
+            'horario',
+            'dias',
+            'aula',
+            'creditos',
+            'tipo',
+            'accion',
+            'modificacion',
+            'fecha_registro',
+            'usuario_registro',
+
+            'docenteFk',
+            'campusFk',
+            'universidadFk',
+            'facultadFk',
+            'escuelaFk',
+            'periodoFk',
+
+            'docenteNombre',
+            'campusNombre',
+            'universidadNombre',
+            'comentario',
+            'facultadNombre',
+            'escuelaNombre',
+            'periodoNombre',
+
+            'universidadCodigo',
+            'campusCodigo',
+            'facultadCodigo',
+            'escuelaCodigo',
+            'periodoCodigo',
         ]
+
+    # --------- Getters seguros ----------
+    def get_docenteNombre(self, obj):
+        d = getattr(obj, 'docenteFk', None)
+        if not d:
+            return 'N/A'
+        # Si tu modelo Docente tiene este método, úsalo:
+        if hasattr(d, 'get_nombre_completo') and callable(d.get_nombre_completo):
+            try:
+                full = d.get_nombre_completo()
+                return full or 'N/A'
+            except Exception:
+                pass
+        # Fallback armando nombre + apellido si existen
+        nombre = getattr(d, 'DocenteNombre', '') or ''
+        apellido = getattr(d, 'DocenteApellido', '') or ''
+        full = f"{nombre} {apellido}".strip()
+        return full or 'N/A'
+
+    def get_codigo_display(self, obj):
+        return obj.codigo or 'N/A'
+
+    def get_nrc_display(self, obj):
+        return obj.nrc or 'N/A'
 
 class AsignacionDocenteSerializer_frontend(serializers.ModelSerializer):
     facultadCodigo = serializers.CharField(source='facultadFk.FacultadNombre', read_only=True)

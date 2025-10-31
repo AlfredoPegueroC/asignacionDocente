@@ -97,8 +97,8 @@ urlpatterns = [
     path('api/periodoacademico/<str:codigo>/', views.details_periodoAcademico, name='detalle_periodoAcademico'),
     path('api/asignacion/<int:pk>/', views.details_Asignacion),
     path('api/asignatura/<str:codigo>/', views.details_asignatura, name='detalle_asignatura'),
-    path('api/accion/<str:codigo>', views.details_accion, name='detalle_accion'),
-    path('api/status/<str:codigo>', views.details_status, name='detalle_status'),
+    path('api/accion/<str:codigo>', views.details_Accion, name='detalle_accion'),
+    path('api/status/<str:codigo>', views.details_Status, name='detalle_status'),
     # AUTH
     path('api/login', views.login_view),
     path('api/logout', views.logout_view),

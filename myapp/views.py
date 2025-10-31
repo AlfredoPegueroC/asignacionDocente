@@ -1,4 +1,5 @@
 import unicodedata
+from decimal import Decimal, InvalidOperation
 from django.shortcuts import render, HttpResponse
 from django.http import JsonResponse
 from .serializer import (
@@ -1752,6 +1753,37 @@ class ImportAsignacion(APIView):
         if not excel_file:
             return Response({"error": "No se envió ningún archivo Excel."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # -------- Helpers locales (usan tus s() y norm() ya definidas arriba) --------
+        def is_blank_or_na(v):
+            sv = s(v).strip()
+            return sv == "" or sv.upper() == "N/A"
+
+        def strip_floatish(txt: str):
+            """'12.0' -> '12' (solo si termina exacto en .0)"""
+            if txt.endswith(".0"):
+                return txt[:-2]
+            return txt
+
+        def to_int_or_none(v):
+            if is_blank_or_na(v):
+                return None
+            sv = s(v).strip()
+            sv = strip_floatish(sv)
+            try:
+                return int(float(sv))
+            except (ValueError, TypeError):
+                return None
+
+        def to_decimal_or_none(v):
+            if is_blank_or_na(v):
+                return None
+            sv = s(v).strip()
+            sv = strip_floatish(sv)
+            try:
+                return Decimal(sv)
+            except (InvalidOperation, ValueError, TypeError):
+                return None
+
         try:
             df = pd.read_excel(excel_file, dtype=object)
             df = df.dropna(how="all")
@@ -1765,7 +1797,7 @@ class ImportAsignacion(APIView):
                     rename_map[col] = canon
             df = df.rename(columns=rename_map)
 
-            # --- Validar columnas requeridas ---
+            # --- Validar que existan las columnas requeridas (valores pueden ir vacíos) ---
             missing = [c for c in REQUIRED_CANONICAL if c not in df.columns]
             if missing:
                 return Response(
@@ -1791,79 +1823,73 @@ class ImportAsignacion(APIView):
             failed_rows = []
             duplicates = []
 
+            # Duplicados de NRC en el mismo periodo (solo cuando nrc no es None)
             existing_nrcs = set(
-                AsignacionDocente.objects.filter(periodoFk=periodo).values_list("nrc", flat=True)
+                AsignacionDocente.objects
+                .filter(periodoFk=periodo, nrc__isnull=False)
+                .values_list("nrc", flat=True)
             )
-
-            def to_int_safe(v, field_name):
-                sv = s(v).strip()
-                if sv == "":
-                    raise ValueError(f"{field_name} vacío")
-                if sv.endswith(".0"):
-                    sv = sv[:-2]
-                return int(float(sv))
 
             # --- Iterar filas ---
             for index, row in df.iterrows():
-                fila = index + 2
+                fila = index + 2  # Excel: header=1, datos empiezan en 2
+
                 try:
-                    facultad = facultades.get(norm(s(row["Facultad"])))
-                    escuela = escuelas.get(norm(s(row["Escuela"])))
-                    campus = campus_map.get(norm(s(row["Campus"])))
+                    # FKs requeridos (según tu modelo actual)
+                    facultad = facultades.get(norm(s(row.get("Facultad"))))
+                    escuela  = escuelas.get(norm(s(row.get("Escuela"))))
+                    campus   = campus_map.get(norm(s(row.get("Campus"))))
 
-                    profesor_str = s(row["Profesor"]).strip()
-                    if not profesor_str:
-                        failed_rows.append(f"Fila {fila}: Nombre de docente vacío.")
+                    if not facultad:
+                        failed_rows.append(f"Fila {fila}: Facultad no encontrada: '{row.get('Facultad')}'")
+                    if not escuela:
+                        failed_rows.append(f"Fila {fila}: Escuela no encontrada: '{row.get('Escuela')}'")
+                    if not campus:
+                        failed_rows.append(f"Fila {fila}: Campus no encontrado: '{row.get('Campus')}'")
+                    if not facultad or not escuela or not campus:
                         continue
 
-                    parts = profesor_str.split()
-                    if len(parts) < 2:
-                        failed_rows.append(f"Fila {fila}: Nombre de docente inválido: '{profesor_str}'")
-                        continue
+                    # Docente OPCIONAL: puede venir vacío/N/A o no encontrarse
+                    profesor_str = s(row.get("Profesor")).strip()
+                    docente = None
+                    if not is_blank_or_na(profesor_str):
+                        parts = profesor_str.split()
+                        if len(parts) >= 2:
+                            nombre = " ".join(parts[:-1]).strip()
+                            apellidos = parts[-1].strip()
+                            docente = docentes.get(norm(f"{nombre} {apellidos}"))
+                        # Si formato raro o no match -> docente=None
 
-                    nombre = " ".join(parts[:-1]).strip()
-                    apellidos = parts[-1].strip()
-                    docente = docentes.get(norm(f"{nombre} {apellidos}"))
+                    # NRC opcional: si vacío/N/A → None (no se chequea duplicado)
+                    nrc_val = s(row.get("NRC")).strip()
+                    nrc_val = strip_floatish(nrc_val)
+                    nrc = None if is_blank_or_na(nrc_val) else nrc_val
 
-                    if not facultad or not escuela or not campus or not docente:
-                        if not facultad:
-                            failed_rows.append(f"Fila {fila}: Facultad no encontrada: '{row['Facultad']}'")
-                        if not escuela:
-                            failed_rows.append(f"Fila {fila}: Escuela no encontrada: '{row['Escuela']}'")
-                        if not campus:
-                            failed_rows.append(f"Fila {fila}: Campus no encontrado: '{row['Campus']}'")
-                        if not docente:
-                            failed_rows.append(f"Fila {fila}: Docente no encontrado: '{profesor_str}'")
-                        continue
-
-                    nrc = s(row["NRC"]).strip()
-                    if nrc.endswith(".0"):
-                        nrc = nrc[:-2]
-
-                    if nrc in existing_nrcs:
-                        duplicates.append(f"Fila {fila}: Duplicado NRC {nrc}")
-                        continue
-                    existing_nrcs.add(nrc)
+                    if nrc is not None:
+                        if nrc in existing_nrcs:
+                            duplicates.append(f"Fila {fila}: Duplicado NRC {nrc}")
+                            continue
+                        existing_nrcs.add(nrc)
 
                     asignacion = AsignacionDocente(
                         nrc=nrc,
-                        clave=s(row["Clave"]).strip(),
-                        nombre=s(row["Asignatura"]).strip(),
-                        codigo=s(row["Codigo"]).strip(),
-                        docenteFk=docente,
-                        seccion=s(row["Seccion"]).strip(),
-                        modalidad=s(row["Modalidad"]).strip(),
+                        clave=s(row.get("Clave")).strip(),
+                        nombre=s(row.get("Asignatura")).strip(),
+                        codigo=None if is_blank_or_na(row.get("Codigo")) else s(row.get("Codigo")).strip(),
+                        docenteFk=docente,  # puede ser None
+                        seccion=s(row.get("Seccion")).strip(),
+                        modalidad=s(row.get("Modalidad")).strip(),
                         campusFk=campus,
                         universidadFk=universidad,
                         facultadFk=facultad,
                         escuelaFk=escuela,
-                        tipo=s(row["Tipo"]).strip(),
-                        cupo=to_int_safe(row["Cupo"], "Cupo"),
-                        inscripto=to_int_safe(row["Inscripto"], "Inscripto"),
-                        horario=s(row["Horario"]).strip(),
-                        dias=s(row["Dias"]).strip(),
-                        aula=s(row["Aula"]).strip(),
-                        creditos=to_int_safe(row["Creditos"], "Creditos"),
+                        tipo=s(row.get("Tipo")).strip(),
+                        cupo=to_int_or_none(row.get("Cupo")),
+                        inscripto=to_int_or_none(row.get("Inscripto")),
+                        horario=s(row.get("Horario")).strip(),
+                        dias=s(row.get("Dias")).strip(),
+                        aula=s(row.get("Aula")).strip(),
+                        creditos=to_decimal_or_none(row.get("Creditos")),  # DecimalField(4,2)
                         periodoFk=periodo,
                         usuario_registro=request.user.username if request.user.is_authenticated else "sistema",
                     )
@@ -1889,7 +1915,6 @@ class ImportAsignacion(APIView):
 
         except Exception as e:
             return Response({"error": f"Error inesperado: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 class ImportUniversidad(APIView):
     parser_classes = [MultiPartParser, FormParser]

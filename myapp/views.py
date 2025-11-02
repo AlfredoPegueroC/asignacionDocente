@@ -2779,6 +2779,7 @@ def dashboard_data(request):
         "totalCampus": Campus.objects.count(),
         "totalCategorias": CategoriaDocente.objects.count(),
         "totalTiposDocente": TipoDocente.objects.count(),
+        "totalAsignaturas": Asignatura.objects.count(),
     }
 
     # Asignaciones por Facultad (del período actual)

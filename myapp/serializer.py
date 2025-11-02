@@ -358,6 +358,7 @@ class DocenteSerializer(serializers.ModelSerializer):
             'DocenteTipoIdentificacion',
             'DocenteNumeroIdentificacion',
             'DocenteTelefono',
+            'DocenteCelular',
             'DocenteCorreoElectronico',
             'DocenteDireccion',
             'DocenteEstado',

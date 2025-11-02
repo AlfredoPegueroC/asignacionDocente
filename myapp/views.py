@@ -2759,15 +2759,12 @@ def copiar_asignaciones(request):
 
 @api_view(["GET"])
 def dashboard_data(request):
-    # Último período académico (simple)
     periodo_actual = PeriodoAcademico.objects.order_by("-PeriodoID").first()
     if not periodo_actual:
         return Response({"error": "No hay períodos registrados."}, status=404)
 
-    # Asignaciones del período actual
     asignaciones = AsignacionDocente.objects.filter(periodoFk=periodo_actual)
 
-    # Métricas generales
     data = {
         "periodoActual": periodo_actual.PeriodoNombre,
         "totalAsignaciones": asignaciones.count(),
@@ -2799,7 +2796,6 @@ def dashboard_data(request):
         }],
     }
 
-    # Docentes por categoría (global)
     docentes_categoria = (
         Docente.objects.values("Docente_CategoriaDocenteFK__CategoriaNombre")
         .annotate(total=Count("DocenteID"))
@@ -2813,10 +2809,6 @@ def dashboard_data(request):
             "backgroundColor": ["#10B981", "#60A5FA", "#F59E0B", "#EF4444", "#A855F7"],
         }],
     }
-
-    # =============================
-    # NUEVAS MÉTRICAS (numéricas)
-    # =============================
 
     profesores_campus_semestre_qs = (
         AsignacionDocente.objects.values(
@@ -2833,8 +2825,7 @@ def dashboard_data(request):
         }
         for r in profesores_campus_semestre_qs
     ]
-    print(data["profesoresPorCampusYSemestre"])
-    # 3) Cantidad de PROFESORES por CAMPUS (solo período actual)
+   
     profesores_por_campus_actual = (
         asignaciones.values("campusFk__CampusNombre")
         .annotate(total=Count("docenteFk", distinct=True))

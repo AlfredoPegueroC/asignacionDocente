@@ -278,6 +278,7 @@ class Docente(models.Model):
     DocenteTipoIdentificacion = models.CharField(max_length=20)
     DocenteNumeroIdentificacion = models.CharField(max_length=20)
     DocenteTelefono = models.CharField(max_length=20)
+    DocenteCelular = models.CharField(max_length=20, default='88888888')
     DocenteCorreoElectronico = models.EmailField(max_length=100)
     DocenteDireccion = models.CharField(max_length=200)
     DocenteEstado = models.CharField(

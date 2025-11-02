@@ -356,7 +356,7 @@ class AsignacionDocente(models.Model):
 
     nrc = models.CharField(max_length=10, null=True, blank=True)  # sin default 'N/A'
     clave = models.CharField(max_length=10)
-    nombre = models.CharField(max_length=150, blank=True, null=True)
+    nombre = models.CharField(max_length=150, blank=True, null=True) # asignatura nombre
 
     # Puede faltar el código → mejor null; “N/A” lo mostrarás en serializer/UI
     codigo = models.CharField(max_length=10, blank=True, null=True)

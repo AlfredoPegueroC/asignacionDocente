@@ -70,8 +70,8 @@ def vista_protegida(request):
 class CustomUserPagination(PageNumberPagination):
     page_size = 10  # Valor por defecto
     page_size_query_param = 'page_size'  # Permite usar ?page_size=25 o 50 desde el frontend
-    max_page_size = 100
-    allowed_page_sizes = [10, 25, 50, 100]  # Tamaños de página permitidos
+    max_page_size = 200
+    allowed_page_sizes = [10, 25, 50, 100, 200]  # Tamaños de página permitidos
 
 @permission_classes([AllowAny])
 class UserViewSet(viewsets.ModelViewSet):
@@ -2756,14 +2756,15 @@ def copiar_asignaciones(request):
     
     
 # @permission_classes([IsAuthenticated])    
+
 @api_view(["GET"])
 def dashboard_data(request):
-    # Último período académico
+    # Último período académico (simple)
     periodo_actual = PeriodoAcademico.objects.order_by("-PeriodoID").first()
     if not periodo_actual:
         return Response({"error": "No hay períodos registrados."}, status=404)
 
-    # Asignaciones filtradas por el período actual
+    # Asignaciones del período actual
     asignaciones = AsignacionDocente.objects.filter(periodoFk=periodo_actual)
 
     # Métricas generales
@@ -2771,44 +2772,78 @@ def dashboard_data(request):
         "periodoActual": periodo_actual.PeriodoNombre,
         "totalAsignaciones": asignaciones.count(),
         "totalDocentes": asignaciones.values("docenteFk").distinct().count(),
-        "totalErrores": asignaciones.filter(accion__in=["Error", "Incompleto", "Pendiente"]).count(),
+        "totalErrores": asignaciones.filter(
+            accion__in=["Error", "Incompleto", "Pendiente"]
+        ).count(),
 
-        # Totales globales del sistema (para DashboardCard)
         "totalFacultades": Facultad.objects.count(),
         "totalEscuelas": Escuela.objects.count(),
         "totalUniversidades": Universidad.objects.count(),
         "totalCampus": Campus.objects.count(),
         "totalCategorias": CategoriaDocente.objects.count(),
         "totalTiposDocente": TipoDocente.objects.count(),
-        
     }
 
-    # Gráfico: Asignaciones por Facultad
-    asignaciones_por_facultad = asignaciones.values(
-        "facultadFk__FacultadNombre"
-    ).annotate(total=Count("AsignacionID"))
-
+    # Asignaciones por Facultad (del período actual)
+    asignaciones_por_facultad = (
+        asignaciones.values("facultadFk__FacultadNombre")
+        .annotate(total=Count("pk"))
+        .order_by("facultadFk__FacultadNombre")
+    )
     data["asignacionesPorFacultad"] = {
-        "labels": [f["facultadFk__FacultadNombre"] for f in asignaciones_por_facultad],
+        "labels": [r["facultadFk__FacultadNombre"] for r in asignaciones_por_facultad],
         "datasets": [{
             "label": "Asignaciones",
-            "data": [f["total"] for f in asignaciones_por_facultad],
-            "backgroundColor": "#3B82F6"
-        }]
+            "data": [r["total"] for r in asignaciones_por_facultad],
+            "backgroundColor": "#3B82F6",
+        }],
     }
 
-    # Gráfico: Docentes por categoría
-    docentes_categoria = Docente.objects.values(
-        "Docente_CategoriaDocenteFK__CategoriaNombre"
-    ).annotate(total=Count("DocenteID"))
-
+    # Docentes por categoría (global)
+    docentes_categoria = (
+        Docente.objects.values("Docente_CategoriaDocenteFK__CategoriaNombre")
+        .annotate(total=Count("DocenteID"))
+        .order_by("Docente_CategoriaDocenteFK__CategoriaNombre")
+    )
     data["docentesPorCategoria"] = {
-        "labels": [d["Docente_CategoriaDocenteFK__CategoriaNombre"] or "No definida" for d in docentes_categoria],
+        "labels": [r["Docente_CategoriaDocenteFK__CategoriaNombre"] or "No definida" for r in docentes_categoria],
         "datasets": [{
             "label": "Docentes",
-            "data": [d["total"] for d in docentes_categoria],
-            "backgroundColor": ["#10B981", "#60A5FA", "#F59E0B", "#EF4444", "#A855F7"]
-        }]
+            "data": [r["total"] for r in docentes_categoria],
+            "backgroundColor": ["#10B981", "#60A5FA", "#F59E0B", "#EF4444", "#A855F7"],
+        }],
     }
+
+    # =============================
+    # NUEVAS MÉTRICAS (numéricas)
+    # =============================
+
+    profesores_campus_semestre_qs = (
+        AsignacionDocente.objects.values(
+            "periodoFk__PeriodoNombre", "campusFk__CampusNombre"
+        )
+        .annotate(total=Count("docenteFk", distinct=True))
+        .order_by("periodoFk__PeriodoNombre", "campusFk__CampusNombre")
+    )
+    data["profesoresPorCampusYSemestre"] = [
+        {
+            "periodo": r["periodoFk__PeriodoNombre"],
+            "campus": r["campusFk__CampusNombre"],
+            "total": r["total"],
+        }
+        for r in profesores_campus_semestre_qs
+    ]
+    print(data["profesoresPorCampusYSemestre"])
+    # 3) Cantidad de PROFESORES por CAMPUS (solo período actual)
+    profesores_por_campus_actual = (
+        asignaciones.values("campusFk__CampusNombre")
+        .annotate(total=Count("docenteFk", distinct=True))
+        .order_by("campusFk__CampusNombre")
+    )
+    print(profesores_por_campus_actual)
+    data["profesoresPorCampus"] = [
+        {"campus": r["campusFk__CampusNombre"], "total": r["total"]}
+        for r in profesores_por_campus_actual
+    ]
 
     return Response(data)

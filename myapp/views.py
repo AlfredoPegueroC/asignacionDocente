@@ -2826,7 +2826,18 @@ def dashboard_data(request):
         }
         for r in profesores_campus_semestre_qs
     ]
-   
+    
+    docentes_por_semestre_qs = (
+        AsignacionDocente.objects
+        .values("periodoFk__PeriodoNombre")
+        .annotate(total=Count("docenteFk", distinct=True))
+        .order_by("periodoFk__PeriodoNombre")
+    )
+    data["docentesPorSemestre"] = [
+        {"periodo": r["periodoFk__PeriodoNombre"], "total": r["total"]}
+        for r in docentes_por_semestre_qs
+    ]
+    print(data["docentesPorSemestre"])
     profesores_por_campus_actual = (
         asignaciones.values("campusFk__CampusNombre")
         .annotate(total=Count("docenteFk", distinct=True))

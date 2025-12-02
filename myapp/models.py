@@ -416,11 +416,11 @@ class AsignacionDocente(models.Model):
     class Meta:
         constraints = [
             # Unicidad solo si NRC no es nulo
-            models.UniqueConstraint(
-                fields=['nrc', 'periodoFk'],
-                name='unique_nrc_periodo',
-                condition=Q(nrc__isnull=False)
-            ),
+            # models.UniqueConstraint(
+            #     fields=['nrc', 'periodoFk'],
+            #     name='unique_nrc_periodo',
+            #     condition=Q(nrc__isnull=False)
+            # ),
             # Opcional: exigir que exista al menos docente o código
             # models.CheckConstraint(
             #     check=Q(docenteFk__isnull=False) | Q(codigo__isnull=False),

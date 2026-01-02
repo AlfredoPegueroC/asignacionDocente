@@ -126,6 +126,8 @@ urlpatterns = [
     path('import/tipoDocente', views.ImportTipoDocente.as_view()),
     path('api/resumen/docente/', views.resumen_asignaciones_docente),
     path("api/dashboard/", views.dashboard_data, name="dashboard-data"),
+    path("api/dashboard/secciones", views.dashboard_secciones, name="dashboard-secciones"),
+    path("api/dashboard/asignaturas", views.dashboard_asignaturas, name="dashboard-asignaturas"),
 
 ]
 

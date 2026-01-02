@@ -2757,7 +2757,9 @@ def copiar_asignaciones(request):
     
 # @permission_classes([IsAuthenticated])    
 
+
 @api_view(["GET"])
+@permission_classes([AllowAny])
 def dashboard_data(request):
     periodo_actual = PeriodoAcademico.objects.order_by("-PeriodoID").first()
     if not periodo_actual:
@@ -2843,10 +2845,226 @@ def dashboard_data(request):
         .annotate(total=Count("docenteFk", distinct=True))
         .order_by("campusFk__CampusNombre")
     )
-    print(profesores_por_campus_actual)
+    # print(profesores_por_campus_actual)
     data["profesoresPorCampus"] = [
         {"campus": r["campusFk__CampusNombre"], "total": r["total"]}
         for r in profesores_por_campus_actual
     ]
+    
+    profesores_por_modalidad = (
+        asignaciones
+        .values("modalidad")
+        .annotate(total=Count("docenteFk", distinct=True))
+        .order_by("modalidad")
+    )
+
+    data["profesoresPorModalidad"] = {
+        "labels": [
+            r["modalidad"] or "No definida"
+            for r in profesores_por_modalidad
+        ],
+        "datasets": [{
+            "label": "Profesores",
+            "data": [r["total"] for r in profesores_por_modalidad],
+            "backgroundColor": "#6366F1",
+        }],
+    }
+
+    profesores_por_asignatura = (
+        asignaciones
+        .exclude(nombre__isnull=True)
+        .values("nombre")
+        .annotate(total=Count("docenteFk", distinct=True))
+        .order_by("-total")[:100]
+    )
+    
+    data["profesoresPorAsignatura"] = {
+        "labels": [r["nombre"] for r in profesores_por_asignatura],
+        "datasets": [{
+            "label": "Profesores",
+            "data": [r["total"] for r in profesores_por_asignatura],
+            "backgroundColor": "#EF4444",
+        }],}
+    return Response(data)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def dashboard_secciones(request):
+    periodo_actual = PeriodoAcademico.objects.order_by("-PeriodoID").first()
+    if not periodo_actual:
+        return Response(
+            {"error": "No hay períodos registrados."},
+            status=404
+        )
+
+    asignaciones = (
+        AsignacionDocente.objects
+        .filter(periodoFk=periodo_actual)
+        .exclude(seccion__isnull=True)
+        .exclude(seccion__exact="")
+    )
+
+    data = {
+        "periodoActual": periodo_actual.PeriodoNombre,
+    }
+    
+    secciones_por_campus = (
+        asignaciones
+        .values("campusFk__CampusNombre")
+        .annotate(total=Count("seccion", distinct=True))
+        .order_by("campusFk__CampusNombre")
+    )
+
+    data["seccionesPorCampus"] = {
+        "labels": [
+            r["campusFk__CampusNombre"] for r in secciones_por_campus
+        ],
+        "datasets": [{
+            "label": "Secciones",
+            "data": [r["total"] for r in secciones_por_campus],
+            "backgroundColor": "#10B981",
+        }],
+    }
+    
+    secciones_por_modalidad = (
+        asignaciones
+        .values("modalidad")
+        .annotate(total=Count("seccion", distinct=True))
+        .order_by("modalidad")
+    )
+
+    data["seccionesPorModalidad"] = {
+        "labels": [
+            r["modalidad"] or "No definida"
+            for r in secciones_por_modalidad
+        ],
+        "datasets": [{
+            "label": "Secciones",
+            "data": [r["total"] for r in secciones_por_modalidad],
+            "backgroundColor": "#6366F1",
+        }],
+    }
+    
+    # secciones_por_profesor = (
+    #     asignaciones
+    #     .exclude(docenteFk__isnull=True)
+    #     .values(
+    #         "docenteFk__DocenteID",
+    #         "docenteFk__DocenteNombres",
+    #         "docenteFk__DocenteApellidos",
+    #     )
+    #     .annotate(total=Count("seccion", distinct=True))
+    #     .order_by("-total")[:100]   # Top 10
+    # )
+
+    # data["seccionesPorProfesor"] = [
+    #     {
+    #         "docente": f"{r['docenteFk__DocenteNombres']} {r['docenteFk__DocenteApellidos']}",
+    #         "total": r["total"],
+    #     }
+    #     for r in secciones_por_profesor
+    # ]
+
+    return Response(data)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def dashboard_asignaturas(request):
+    periodo_actual = PeriodoAcademico.objects.order_by("-PeriodoID").first()
+    if not periodo_actual:
+        return Response(
+            {"error": "No hay períodos registrados."},
+            status=404
+        )
+
+    asignaciones = (
+        AsignacionDocente.objects
+        .filter(periodoFk=periodo_actual)
+        .exclude(nombre__isnull=True)
+        .exclude(nombre__exact="")
+    )
+
+    data = {
+        "periodoActual": periodo_actual.PeriodoNombre,
+    }
+    
+    asignaturas_por_seccion = (
+        asignaciones
+        .exclude(seccion__isnull=True)
+        .exclude(seccion__exact="")
+        .values("seccion")
+        .annotate(total=Count("nombre", distinct=True))
+        .order_by("seccion")
+    )
+
+    data["asignaturasPorSeccion"] = {
+        "labels": [r["seccion"] for r in asignaturas_por_seccion],
+        "datasets": [{
+            "label": "Asignaturas",
+            "data": [r["total"] for r in asignaturas_por_seccion],
+            "backgroundColor": "#3B82F6",
+        }],
+    }
+    
+    asignaturas_por_modalidad = (
+        asignaciones
+        .values("modalidad")
+        .annotate(total=Count("nombre", distinct=True))
+        .order_by("modalidad")
+    )
+
+    data["asignaturasPorModalidad"] = {
+        "labels": [
+            r["modalidad"] or "No definida"
+            for r in asignaturas_por_modalidad
+        ],
+        "datasets": [{
+            "label": "Asignaturas",
+            "data": [r["total"] for r in asignaturas_por_modalidad],
+            "backgroundColor": "#10B981",
+        }],
+    }
+
+    asignaturas_por_campus = (
+        asignaciones
+        .values("campusFk__CampusNombre")
+        .annotate(total=Count("nombre", distinct=True))
+        .order_by("campusFk__CampusNombre")
+    )
+
+    data["asignaturasPorCampus"] = {
+        "labels": [
+            r["campusFk__CampusNombre"]
+            for r in asignaturas_por_campus
+        ],
+        "datasets": [{
+            "label": "Asignaturas",
+            "data": [r["total"] for r in asignaturas_por_campus],
+            "backgroundColor": "#F59E0B",
+        }],
+    }
+
+    # asignaturas_por_campus_profesor = (
+    #     asignaciones
+    #     .exclude(docenteFk__isnull=True)
+    #     .values(
+    #         "campusFk__CampusNombre",
+    #         "docenteFk__DocenteNombres",
+    #         "docenteFk__DocenteApellidos",
+    #     )
+    #     .annotate(total=Count("nombre", distinct=True))
+    #     .order_by("campusFk__CampusNombre", "-total")
+    # )
+
+    # data["asignaturasPorCampusYProfesor"] = [
+    #     {
+    #         "campus": r["campusFk__CampusNombre"],
+    #         "docente": f"{r['docenteFk__DocenteNombres']} {r['docenteFk__DocenteApellidos']}",
+    #         "total": r["total"],
+    #     }
+    #     for r in asignaturas_por_campus_profesor
+    # ]
 
     return Response(data)

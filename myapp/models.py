@@ -158,6 +158,7 @@ class Status(models.Model):
     StatusID = models.AutoField(primary_key=True)
     StatusCodigo = models.CharField(max_length=25, unique=True)
     StatusNombre = models.CharField(max_length=50, unique=True)
+    StatusEstado = models.CharField(max_length=15, choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')], default='Activo')
     StatusFechaRegistro = models.DateTimeField(auto_now_add=True)
     UsuarioRegistro = models.CharField(max_length=50, blank=True, null=True, default='admin')
     

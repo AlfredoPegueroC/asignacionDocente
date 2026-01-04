@@ -78,8 +78,14 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().order_by('id')
     serializer_class = UserSerializer
     pagination_class = CustomUserPagination
-    # permission_classes = [IsAuthenticated]
 
+    filter_backends = [SearchFilter]
+    search_fields = [
+        'username',
+        'first_name',
+        'last_name',
+        'email',
+    ]
 
 
 class LogPagination(PageNumberPagination):
@@ -2942,7 +2948,7 @@ def dashboard_secciones(request):
         "datasets": [{
             "label": "Secciones",
             "data": [r["total"] for r in secciones_por_modalidad],
-            "backgroundColor": "#6366F1",
+            "backgroundColor": ["#10B981", "#60A5FA", "#F59E0B", "#EF4444", "#A855F7"],
         }],
     }
     
@@ -3023,7 +3029,7 @@ def dashboard_asignaturas(request):
         "datasets": [{
             "label": "Asignaturas",
             "data": [r["total"] for r in asignaturas_por_modalidad],
-            "backgroundColor": "#10B981",
+            "backgroundColor": ["#10B981", "#60A5FA", "#F59E0B", "#EF4444", "#A855F7"],
         }],
     }
 
@@ -3105,7 +3111,7 @@ def dashboard_profesores(request):
         "datasets": [{
             "label": "Profesores",
             "data": [r["total"] for r in profesores_por_modalidad],
-            "backgroundColor": "#6366F1",
+            "backgroundColor": ["#10B981", "#60A5FA", "#F59E0B", "#EF4444", "#A855F7"],
         }],
     }
 
@@ -3115,7 +3121,7 @@ def dashboard_profesores(request):
         .exclude(nombre__exact="")
         .values("nombre")
         .annotate(total=Count("docenteFk", distinct=True))
-        .order_by("-total")[:10]
+        .order_by("-total")[:100]
     )
 
     data["profesoresPorAsignatura"] = {

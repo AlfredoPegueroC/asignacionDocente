@@ -128,6 +128,7 @@ urlpatterns = [
     path("api/dashboard/", views.dashboard_data, name="dashboard-data"),
     path("api/dashboard/secciones", views.dashboard_secciones, name="dashboard-secciones"),
     path("api/dashboard/asignaturas", views.dashboard_asignaturas, name="dashboard-asignaturas"),
+    path("api/dashboard/docentes", views.dashboard_profesores, name="dashboard-docentes"),
 
 ]
 

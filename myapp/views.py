@@ -3068,3 +3068,81 @@ def dashboard_asignaturas(request):
     # ]
 
     return Response(data)
+
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def dashboard_profesores(request):
+    periodo_actual = PeriodoAcademico.objects.order_by("-PeriodoID").first()
+    if not periodo_actual:
+        return Response(
+            {"error": "No hay períodos registrados."},
+            status=404
+        )
+
+    asignaciones = (
+        AsignacionDocente.objects
+        .filter(periodoFk=periodo_actual)
+        .exclude(docenteFk__isnull=True)
+    )
+
+    data = {
+        "periodoActual": periodo_actual.PeriodoNombre,
+    }
+    profesores_por_modalidad = (
+        asignaciones
+        .values("modalidad")
+        .annotate(total=Count("docenteFk", distinct=True))
+        .order_by("modalidad")
+    )
+
+    data["profesoresPorModalidad"] = {
+        "labels": [
+            r["modalidad"] or "No definida"
+            for r in profesores_por_modalidad
+        ],
+        "datasets": [{
+            "label": "Profesores",
+            "data": [r["total"] for r in profesores_por_modalidad],
+            "backgroundColor": "#6366F1",
+        }],
+    }
+
+    profesores_por_asignatura = (
+        asignaciones
+        .exclude(nombre__isnull=True)
+        .exclude(nombre__exact="")
+        .values("nombre")
+        .annotate(total=Count("docenteFk", distinct=True))
+        .order_by("-total")[:10]
+    )
+
+    data["profesoresPorAsignatura"] = {
+        "labels": [r["nombre"] for r in profesores_por_asignatura],
+        "datasets": [{
+            "label": "Profesores",
+            "data": [r["total"] for r in profesores_por_asignatura],
+            "backgroundColor": "#F59E0B",
+        }],
+    }
+
+    profesores_por_campus = (
+        asignaciones
+        .values("campusFk__CampusNombre")
+        .annotate(total=Count("docenteFk", distinct=True))
+        .order_by("campusFk__CampusNombre")
+    )
+
+    data["profesoresPorCampus"] = {
+        "labels": [
+            r["campusFk__CampusNombre"]
+            for r in profesores_por_campus
+        ],
+        "datasets": [{
+            "label": "Profesores",
+            "data": [r["total"] for r in profesores_por_campus],
+            "backgroundColor": "#10B981",
+        }],
+    }
+    return Response(data)

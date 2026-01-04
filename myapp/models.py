@@ -178,6 +178,7 @@ class Accion(models.Model):
     AccionCodigo = models.CharField(max_length=25, unique=True)
     AccionNombre = models.CharField(max_length=50, unique=True)
     AccionFechaRegistro = models.DateTimeField(auto_now_add=True)
+    AccionStatus = models.CharField(max_length=15, choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')], default='Activo')
     UsuarioRegistro = models.CharField(max_length=50, blank=True, null=True, default='admin')
     
     Accion_UniversidadFK = models.ForeignKey(
